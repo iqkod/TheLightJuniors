@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Light Saudi Online Juniors - Ramadan 2026</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #0c1445 0%, #1a56ad 100%);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .hover-lift {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .btn-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-shine::after {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(45deg);
+            transition: 0.5s;
+        }
+
+        .btn-shine:hover::after {
+            left: 120%;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <img src="https://velichamsaudionlinecom.wordpress.com/wp-content/uploads/2026/02/ligt-logo.jpg" alt="Logo" class="h-10 w-auto rounded">
+                    <span class="font-bold text-blue-900 hidden sm:block">The Light Saudi Online</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#details" class="text-slate-600 hover:text-blue-700 font-medium transition">Details</a>
+                    <a href="#prizes" class="text-slate-600 hover:text-blue-700 font-medium transition">Prizes</a>
+                    <a href="#schedule" class="text-slate-600 hover:text-blue-700 font-medium transition">Schedule</a>
+                </div>
+                <a href="http://thelightjuniors.islahiweb.org/" target="_blank" class="bg-blue-700 text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-blue-800 transition shadow-lg">
+                    Portal
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-gradient text-white py-20 px-4">
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="inline-block bg-yellow-400 text-blue-900 px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest mb-6 animate-bounce">
+                Ramadan 2026 Special Edition
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-6 leading-tight">
+                Innovative Quran Learning for <br>
+                <span class="text-yellow-400">Indian Children</span>
+            </h1>
+            <p class="text-lg md:text-xl text-blue-100 mb-10 max-w-2xl mx-auto leading-relaxed">
+                Join thousands of juniors under age 19 in our annual Ramadan learning journey. Deepen your understanding of the Quran with Thafseer As-Sa’di.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="http://thelightjuniors.islahiweb.org/" target="_blank" class="btn-shine bg-yellow-400 text-blue-900 px-8 py-4 rounded-xl font-black text-lg shadow-2xl transition hover:scale-105">
+                    🚀 ENTER EXAM PORTAL
+                </a>
+                <a href="https://chat.whatsapp.com/E4BX9Y227xRHriLF3ydSgh" target="_blank" class="flex items-center justify-center gap-2 bg-white/10 border border-white/20 backdrop-blur px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/20 transition">
+                    <i data-lucide="message-circle"></i> Join Community
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Quick Links Grid -->
+    <section class="max-w-6xl mx-auto px-4 -mt-12">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <a href="https://velichamsaudionline.com/the-light-juniorscourse-details/" class="glass-card p-6 rounded-2xl text-center hover-lift border-b-4 border-blue-600 group">
+                <div class="bg-blue-100 text-blue-600 w-12 h-12 flex items-center justify-center rounded-full mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white transition">
+                    <i data-lucide="book-open"></i>
+                </div>
+                <h3 class="font-bold text-slate-800">Course Details</h3>
+            </a>
+            <a href="https://velichamsaudionline.com/thelight2026-course-materials/" class="glass-card p-6 rounded-2xl text-center hover-lift border-b-4 border-blue-600 group">
+                <div class="bg-green-100 text-green-600 w-12 h-12 flex items-center justify-center rounded-full mx-auto mb-4 group-hover:bg-green-600 group-hover:text-white transition">
+                    <i data-lucide="library"></i>
+                </div>
+                <h3 class="font-bold text-slate-800">Materials</h3>
+            </a>
+            <a href="https://velichamsaudionline.com/the-steps-to-register-and-attend-the-quizzes/" class="glass-card p-6 rounded-2xl text-center hover-lift border-b-4 border-blue-600 group">
+                <div class="bg-orange-100 text-orange-600 w-12 h-12 flex items-center justify-center rounded-full mx-auto mb-4 group-hover:bg-orange-600 group-hover:text-white transition">
+                    <i data-lucide="clipboard-list"></i>
+                </div>
+                <h3 class="font-bold text-slate-800">Help Guide</h3>
+            </a>
+            <a href="https://velichamsaudionline.com/the-light-juniors2026-winners/" class="glass-card p-6 rounded-2xl text-center hover-lift border-b-4 border-yellow-500 group">
+                <div class="bg-yellow-100 text-yellow-600 w-12 h-12 flex items-center justify-center rounded-full mx-auto mb-4 group-hover:bg-yellow-500 group-hover:text-white transition">
+                    <i data-lucide="trophy"></i>
+                </div>
+                <h3 class="font-bold text-slate-800">Winners List</h3>
+            </a>
+        </div>
+    </section>
+
+    <!-- Program Info -->
+    <section id="details" class="max-w-6xl mx-auto px-4 py-20">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-extrabold text-blue-900 mb-4">Program Overview</h2>
+            <div class="h-1 w-20 bg-yellow-400 mx-auto rounded-full"></div>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center">
+                <h3 class="text-xl font-bold text-blue-900 mb-2">Eligibility</h3>
+                <p class="text-slate-500 mb-4">Indian children worldwide</p>
+                <div class="text-3xl font-black text-blue-600">Up to 19 Years</div>
+            </div>
+            <div class="bg-white p-8 rounded-3xl border-2 border-yellow-400 shadow-xl text-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-yellow-400 text-[10px] font-black px-3 py-1 rounded-bl-lg uppercase">Core</div>
+                <h3 class="text-xl font-bold text-blue-900 mb-2">Syllabus</h3>
+                <p class="text-slate-500 mb-4 italic">Thafseer As-Sa’di (English)</p>
+                <div class="text-lg font-bold text-blue-600">Surah Al-Jinn to Al-Mursalath</div>
+            </div>
+            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center">
+                <h3 class="text-xl font-bold text-blue-900 mb-2">Exam Timing</h3>
+                <p class="text-slate-500 mb-4">Daily Window</p>
+                <div class="text-3xl font-black text-blue-600">5 AM - 3 AM</div>
+                <p class="text-[10px] text-slate-400 mt-2">Available until next day</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Prizes Section -->
+    <section id="prizes" class="bg-blue-900 py-20 text-white overflow-hidden relative">
+        <div class="max-w-6xl mx-auto px-4 relative z-10">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-extrabold mb-4">🏆 Grand Prizes</h2>
+                <p class="text-blue-200">Rewarding excellence in Quranic knowledge</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6 mb-10">
+                <div class="bg-white/10 backdrop-blur p-8 rounded-2xl text-center border border-white/10">
+                    <p class="text-yellow-400 font-black tracking-widest text-sm mb-2">1ST PRIZE</p>
+                    <div class="text-4xl font-black">6000 <span class="text-lg font-normal">INR</span></div>
+                </div>
+                <div class="bg-white/20 backdrop-blur p-8 rounded-2xl text-center border-2 border-yellow-400 scale-105 shadow-2xl">
+                    <p class="text-yellow-400 font-black tracking-widest text-sm mb-2">2ND PRIZE</p>
+                    <div class="text-4xl font-black">3000 <span class="text-lg font-normal">INR</span></div>
+                </div>
+                <div class="bg-white/10 backdrop-blur p-8 rounded-2xl text-center border border-white/10">
+                    <p class="text-yellow-400 font-black tracking-widest text-sm mb-2">3RD PRIZE</p>
+                    <div class="text-4xl font-black">2000 <span class="text-lg font-normal">INR</span></div>
+                </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div class="bg-white/5 p-6 rounded-xl border border-dashed border-white/20 text-center">
+                    <span class="block text-blue-300 font-bold">10 Consolation Prizes</span>
+                    <span class="text-xl font-bold">Worth 1000 INR Each</span>
+                </div>
+                <div class="bg-blue-800/50 p-6 rounded-xl border border-dashed border-blue-400 text-center">
+                    <span class="block text-yellow-400 font-bold">Daily Winner</span>
+                    <span class="text-xl font-bold">Worth 750 INR Each</span>
+                </div>
+            </div>
+        </div>
+        <!-- Decorative Circle -->
+        <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-yellow-400/10 rounded-full blur-3xl"></div>
+    </section>
+
+    <!-- Schedule & Video -->
+    <section id="schedule" class="max-w-6xl mx-auto px-4 py-20">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+                <h2 class="text-3xl font-extrabold text-blue-900 mb-8">Important Dates</h2>
+                <div class="space-y-4">
+                    <div class="flex items-center gap-6 p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <div class="bg-blue-100 text-blue-600 p-4 rounded-xl">
+                            <i data-lucide="calendar"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Daily Quizzes (MCQs)</h4>
+                            <p class="text-blue-600 font-semibold">Feb 22 — Mar 09, 2026</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6 p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <div class="bg-yellow-100 text-yellow-600 p-4 rounded-xl">
+                            <i data-lucide="star"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Final Examination</h4>
+                            <p class="text-yellow-600 font-semibold">March 14, 2026 (Saturday)</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6 p-6 bg-blue-900 text-white rounded-2xl shadow-xl">
+                        <div class="bg-white/20 p-4 rounded-xl">
+                            <i data-lucide="mic"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">Grand Finale (Live)</h4>
+                            <p class="text-blue-200">Broadcast worldwide</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video/Media Area -->
+            <div class="relative">
+                <div class="bg-slate-200 aspect-[9/16] rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white">
+                    <!-- Instagram Reel Placeholder / Embed -->
+                    <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white p-8 text-center backdrop-blur-sm">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                            <i data-lucide="play" class="fill-current"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-4">Watch the Promo</h4>
+                        <a href="https://www.instagram.com/reel/DVCTidEDCX9/" target="_blank" class="bg-pink-600 text-white px-6 py-2 rounded-full font-bold text-sm flex items-center gap-2 hover:bg-pink-700 transition">
+                            <i data-lucide="instagram" class="w-4"></i> View on Instagram
+                        </a>
+                    </div>
+                    <img src="https://velichamsaudionlinecom.wordpress.com/wp-content/uploads/2026/02/ligt-logo.jpg" alt="Preview" class="w-full h-full object-cover opacity-50">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support Section -->
+    <section class="max-w-4xl mx-auto px-4 mb-20">
+        <div class="bg-blue-50 border border-blue-100 rounded-3xl p-8 md:p-12 text-center">
+            <h3 class="text-2xl font-bold text-blue-900 mb-4">Need Assistance?</h3>
+            <p class="text-slate-600 mb-8">Our support team is available via WhatsApp for all registration and exam queries.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-6 text-lg font-bold text-blue-900">
+                <div class="flex items-center justify-center gap-2">
+                    <i data-lucide="phone" class="w-5 text-blue-600"></i> +966 54 374 2914
+                </div>
+                <div class="flex items-center justify-center gap-2">
+                    <i data-lucide="phone" class="w-5 text-blue-600"></i> +966 56 988 5348
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-12 px-4 border-t border-slate-800">
+        <div class="max-w-6xl mx-auto text-center">
+            <img src="https://velichamsaudionlinecom.wordpress.com/wp-content/uploads/2026/02/ligt-logo.jpg" alt="Footer Logo" class="h-12 w-auto mx-auto mb-6 grayscale opacity-50">
+            <div class="flex flex-wrap justify-center gap-6 mb-8 text-sm">
+                <a href="#" class="hover:text-white transition">Course Details</a>
+                <a href="#" class="hover:text-white transition">Study Materials</a>
+                <a href="#" class="hover:text-white transition">Registration Help</a>
+                <a href="#" class="hover:text-white transition">Previous Winners</a>
+            </div>
+            <p class="font-bold text-white mb-2">© Saudi Indian Islahi Center</p>
+            <p class="text-xs">© 2026 The Light Saudi Online. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
