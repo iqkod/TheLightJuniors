@@ -55,6 +55,16 @@
         .btn-shine:hover::after {
             left: 120%;
         }
+
+        .pulse-red {
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -72,9 +82,14 @@
                     <a href="#prizes" class="text-slate-600 hover:text-blue-700 font-medium transition">Prizes</a>
                     <a href="#schedule" class="text-slate-600 hover:text-blue-700 font-medium transition">Schedule</a>
                 </div>
-                <a href="http://thelightjuniors.islahiweb.org/" target="_blank" class="bg-blue-700 text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-blue-800 transition shadow-lg">
-                    Portal
-                </a>
+                <div class="flex items-center gap-3">
+                    <a href="https://iqkod.github.io/TheLightJuniors/quiz.html" target="_blank" class="bg-red-600 text-white px-4 py-2 rounded-full font-bold text-xs hover:bg-red-700 transition shadow-md hidden sm:block">
+                        Final Exam
+                    </a>
+                    <a href="http://thelightjuniors.islahiweb.org/" target="_blank" class="bg-blue-700 text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-blue-800 transition shadow-lg">
+                        Portal
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -93,8 +108,12 @@
                 Join thousands of juniors under age 19 in our annual Ramadan learning journey. Deepen your understanding of the Quran with Thafseer As-Sa’di.
             </p>
             <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="http://thelightjuniors.islahiweb.org/" target="_blank" class="btn-shine bg-yellow-400 text-blue-900 px-8 py-4 rounded-xl font-black text-lg shadow-2xl transition hover:scale-105">
-                    🚀 ENTER EXAM PORTAL
+                <!-- Final Exam Link -->
+                <a href="https://iqkod.github.io/TheLightJuniors/quiz.html" target="_blank" class="pulse-red bg-red-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-2xl transition hover:scale-105 flex items-center justify-center gap-2">
+                    <i data-lucide="award"></i> ENTER FINAL EXAM
+                </a>
+                <a href="http://thelightjuniors.islahiweb.org/" target="_blank" class="btn-shine bg-yellow-400 text-blue-900 px-8 py-4 rounded-xl font-black text-lg shadow-2xl transition hover:scale-105 flex items-center justify-center gap-2">
+                    🚀 DAILY PORTAL
                 </a>
                 <a href="https://chat.whatsapp.com/E4BX9Y227xRHriLF3ydSgh" target="_blank" class="flex items-center justify-center gap-2 bg-white/10 border border-white/20 backdrop-blur px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/20 transition">
                     <i data-lucide="message-circle"></i> Join Community
@@ -104,8 +123,16 @@
     </header>
 
     <!-- Quick Links Grid -->
-    <section class="max-w-6xl mx-auto px-4 -mt-12">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <section class="max-w-7xl mx-auto px-4 -mt-12">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <!-- Final Exam Highlight -->
+            <a href="https://iqkod.github.io/TheLightJuniors/quiz.html" class="glass-card p-6 rounded-2xl text-center hover-lift border-b-4 border-red-600 group bg-red-50">
+                <div class="bg-red-100 text-red-600 w-12 h-12 flex items-center justify-center rounded-full mx-auto mb-4 group-hover:bg-red-600 group-hover:text-white transition">
+                    <i data-lucide="pencil-line"></i>
+                </div>
+                <h3 class="font-black text-red-700">Final Exam</h3>
+            </a>
+            
             <a href="https://velichamsaudionline.com/the-light-juniorscourse-details/" class="glass-card p-6 rounded-2xl text-center hover-lift border-b-4 border-blue-600 group">
                 <div class="bg-blue-100 text-blue-600 w-12 h-12 flex items-center justify-center rounded-full mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white transition">
                     <i data-lucide="book-open"></i>
@@ -214,13 +241,13 @@
                             <p class="text-blue-600 font-semibold">Feb 22 — Mar 09, 2026</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-6 p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                        <div class="bg-yellow-100 text-yellow-600 p-4 rounded-xl">
-                            <i data-lucide="star"></i>
+                    <div class="flex items-center gap-6 p-6 bg-red-50 rounded-2xl border border-red-100 shadow-sm">
+                        <div class="bg-red-100 text-red-600 p-4 rounded-xl">
+                            <i data-lucide="award"></i>
                         </div>
                         <div>
                             <h4 class="font-bold text-slate-800">Final Examination</h4>
-                            <p class="text-yellow-600 font-semibold">March 14, 2026 (Saturday)</p>
+                            <p class="text-red-600 font-bold uppercase tracking-wide">Live Now: March 14, 2026</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-6 p-6 bg-blue-900 text-white rounded-2xl shadow-xl">
@@ -238,7 +265,6 @@
             <!-- Video/Media Area -->
             <div class="relative">
                 <div class="bg-slate-200 aspect-[9/16] rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white">
-                    <!-- Instagram Reel Placeholder / Embed -->
                     <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white p-8 text-center backdrop-blur-sm">
                         <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
                             <i data-lucide="play" class="fill-current"></i>
@@ -275,10 +301,10 @@
         <div class="max-w-6xl mx-auto text-center">
             <img src="https://velichamsaudionlinecom.wordpress.com/wp-content/uploads/2026/02/ligt-logo.jpg" alt="Footer Logo" class="h-12 w-auto mx-auto mb-6 grayscale opacity-50">
             <div class="flex flex-wrap justify-center gap-6 mb-8 text-sm">
+                <a href="https://iqkod.github.io/TheLightJuniors/quiz.html" class="text-white font-bold hover:underline transition">Final Exam Portal</a>
                 <a href="#" class="hover:text-white transition">Course Details</a>
                 <a href="#" class="hover:text-white transition">Study Materials</a>
                 <a href="#" class="hover:text-white transition">Registration Help</a>
-                <a href="#" class="hover:text-white transition">Previous Winners</a>
             </div>
             <p class="font-bold text-white mb-2">© Saudi Indian Islahi Center</p>
             <p class="text-xs">© 2026 The Light Saudi Online. All rights reserved.</p>
