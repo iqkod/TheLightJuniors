@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Light Juniors - Quiz & Admin</title>
+    <title>The Light Juniors - Quiz Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -26,17 +26,24 @@
         const auth = getAuth(app);
         const appId = "thelightjuniors";
 
+        // State Management
         let user = null;
+        let studentData = { name: '', place: '', mobile: '' };
+        let studentSelections = Array(10).fill(null);
+        let currentQuestion = 0;
+        let timeLeft = 600; // 10 minutes in seconds
+        let timerInterval = null;
+        let isSubmitted = false;
+
+        // AUTHENTICATION
         onAuthStateChanged(auth, (u) => { user = u; });
-        const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) {} };
+        const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) { console.error("Auth failed"); } };
         initAuth();
 
-        // Load saved details on startup
         window.addEventListener('DOMContentLoaded', () => {
             const savedName = localStorage.getItem('tlj_name');
             const savedPlace = localStorage.getItem('tlj_place');
             const savedMobile = localStorage.getItem('tlj_mobile');
-            
             if(savedName) document.getElementById('name').value = savedName;
             if(savedPlace) document.getElementById('place').value = savedPlace;
             if(savedMobile) document.getElementById('mobile').value = savedMobile;
@@ -55,10 +62,6 @@
             { q: "Length of the Day of Resurrection:", a: "Infinite", b: "Fifty years", c: "Not defined", d: "Fifty thousand years", correct: "d" }
         ];
 
-        let studentData = { name: '', place: '', mobile: '' };
-        let studentSelections = Array(10).fill(null);
-        let currentQuestion = 0;
-
         const allowedMobiles = ["966-501797382","966-599122138","966-557544882","91-7356160643","966-576737310","91-8281539208","91-6235828844","966-535768609","966-505191459","44-7624376081","44-7624489327","61-0401619365","91-6235928844","91-6238041679","91-7025511457","91-7025785391","91-7034139883","91-7034253576","91-7034399820","91-7306540074","91-7558871351","91-7560956711","91-7594803054","91-7902448701","91-7902470316","91-7907034843","91-8129686991","91-8129764186","91-8157860261","91-8304063560","91-8714267974","91-8714801835","91-8848193358","91-9037267974","91-9207658678","91-9496699612","91-9539360509","91-9567256340","91-9629988903","91-9633035008","91-9645328773","91-9645395415","91-9656912678","91-9744205385","91-9745616062","91-9817111151","91-9843918413","91-9847193435","91-9847302529","91-9895991116","91-9900953430","91-9946050257","91-9947709622","965-50905731","966-500677517","966-500967745","966-501154403","966-501250188","966-501527780","966-501534407","966-502163791","966-503262990","966-503679542","966-503766632","966-504165135","966-504186982","966-504383232","966-504435135","966-505332710","966-505765817","966-505797935","966-506729657","966-506830680","966-506942737","966-507177103","966-508032152","966-508194715","966-508222053","966-508386571","966-508742148","966-508815960","966-508854732","966-509229487","966-509262992","966-509292062","966-509402136","966-510360426","966-530141819","966-530960342","966-531894076","966-532063993","966-532679687","966-532796405","966-532963089","966-533594582","966-533689757","966-534314336","966-536273182","966-536296334","966-536474235","966-537637215","966-538531297","966-539101716","966-539302907","966-539867101","966-540247380","966-541247266","966-541632275","966-541851574","966-541885929","966-542099671","966-543718439","966-543779651","966-543820213","966-545094153","966-545136406","966-545442493","966-545900025","966-546549197","966-546678286","966-546940420","966-546991610","966-548420429","966-549840171","966-550619441","966-550989676","966-551508035","966-551582755","966-551758148","966-551876182","966-552455305","966-552465305","966-552640798","966-552915784","966-553602809","966-554021052","966-554078961","966-555069168","966-556096654","966-556475906","966-556857931","966-558675808","966-561486272","966-562129566","966-562834251","966-563161829","966-564843475","966-564984695","966-565951942","966-566780847","966-567133278","966-567316632","966-567596578","966-567830655","966-567971022","966-568258888","966-569180023","966-569534791","966-570173640","966-570802341","966-570828420","966-571918309","966-572099478","966-572957971","966-574359871","966-574980699","966-576050581","966-580591263","966-581965286","966-591277136","966-592598969","966-595088137","966-595171618","966-599215214","971-524832451","971-555245457","971-557424082","971-561432359","971-563963407","971-586655864","971-588822419","91-9964946252","965-99794592","966-530992783","966-531458085","966-534495300","966-535460233","966-553382689","966-554415618","966-556752858","966-566443377","966-571053310","966-597053063","91-9633987889","966-506613574","966-535821533","966-548421962","966-565460233","966-571472518","91-7337505186","966-538451880","966-562133065","966-508451880","966-538024360","966-531954480","966-539004619","966-549295586","966-564546985","966-599934246","91-9447156453"];
 
         const showScreen = (id) => {
@@ -66,6 +69,40 @@
                 document.getElementById(s).classList.add('hidden');
             });
             document.getElementById(id).classList.remove('hidden');
+            window.scrollTo(0,0);
+        };
+
+        const startTimer = () => {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    autoSubmit();
+                    return;
+                }
+                timeLeft--;
+                updateTimerUI();
+            }, 1000);
+        };
+
+        const updateTimerUI = () => {
+            const min = Math.floor(timeLeft / 60);
+            const sec = timeLeft % 60;
+            const timeStr = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+            document.getElementById('timer-display').innerText = timeStr;
+            
+            // Visual alert when low time
+            const timerBox = document.getElementById('timer-box');
+            if (timeLeft <= 60) {
+                timerBox.classList.remove('text-slate-400');
+                timerBox.classList.add('text-red-500', 'animate-pulse');
+            }
+        };
+
+        const autoSubmit = async () => {
+            if (isSubmitted) return;
+            alert("Time is up! Your quiz will be submitted automatically.");
+            await window.submitResult();
         };
 
         window.startQuiz = () => {
@@ -73,16 +110,16 @@
             const place = document.getElementById('place').value.trim();
             const mobile = document.getElementById('mobile').value.trim();
             
-            if(!name || !place || !mobile) return alert("Fill all fields");
-            if(!allowedMobiles.includes(mobile)) return alert("Mobile not authorized");
+            if(!name || !place || !mobile) return alert("Please fill all fields.");
+            if(!allowedMobiles.includes(mobile)) return alert("This mobile number is not authorized.");
 
-            // Save details to localStorage for future visits
             localStorage.setItem('tlj_name', name);
             localStorage.setItem('tlj_place', place);
             localStorage.setItem('tlj_mobile', mobile);
 
             studentData = { name, place, mobile };
             showScreen('quiz-screen');
+            startTimer();
             renderQuestion();
         };
 
@@ -106,7 +143,7 @@
             });
 
             document.getElementById('prev-btn').style.visibility = currentQuestion === 0 ? 'hidden' : 'visible';
-            document.getElementById('next-btn').innerText = currentQuestion === 9 ? 'Go to Review' : 'Next Question';
+            document.getElementById('next-btn').innerText = currentQuestion === 9 ? 'Review Answers' : 'Next';
             document.getElementById('progress-bar').style.width = `${(currentQuestion + 1) * 10}%`;
         };
 
@@ -128,16 +165,19 @@
             container.innerHTML = '';
             questions.forEach((q, i) => {
                 const sel = studentSelections[i];
+                const answerText = sel ? q[sel] : "No answer selected";
+                
                 const item = document.createElement('div');
-                item.className = "flex justify-between items-center p-3 border-b text-sm";
+                item.className = "flex flex-col p-5 border-b text-sm bg-white hover:bg-slate-50 transition-colors";
                 item.innerHTML = `
-                    <div class="flex-1 pr-4">
-                        <span class="font-bold text-slate-400 mr-2">Q${i+1}.</span>
-                        <span class="text-slate-700">${q.q.substring(0, 60)}...</span>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-black text-blue-600 uppercase text-[10px] tracking-widest">Question ${i+1}</span>
+                        <button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] uppercase tracking-wider underline">Edit</button>
                     </div>
+                    <div class="text-slate-800 font-bold mb-3 leading-snug">${q.q}</div>
                     <div class="flex items-center gap-3">
-                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-bold uppercase text-[10px] tracking-widest">${sel || '?'}</span>
-                        <button onclick="editQuestion(${i})" class="text-blue-500 hover:underline font-medium">Edit</button>
+                        <span class="w-6 h-6 rounded bg-blue-600 text-white flex items-center justify-center font-black text-[10px] shrink-0 uppercase">${sel || '?'}</span>
+                        <span class="text-slate-500 font-medium">${answerText}</span>
                     </div>
                 `;
                 container.appendChild(item);
@@ -147,9 +187,10 @@
         window.editQuestion = (idx) => { currentQuestion = idx; showScreen('quiz-screen'); renderQuestion(); };
 
         window.submitResult = async () => {
-            if (studentSelections.includes(null)) return alert("Answer all questions.");
+            if (isSubmitted) return;
             const btn = document.getElementById('final-submit-btn');
-            btn.disabled = true; btn.innerText = "Processing...";
+            btn.disabled = true; 
+            btn.innerText = "Saving Result...";
 
             const score = studentSelections.filter((sel, i) => sel === questions[i].correct).length;
 
@@ -160,223 +201,150 @@
                     selections: studentSelections,
                     at: serverTimestamp()
                 });
+                isSubmitted = true;
+                if(timerInterval) clearInterval(timerInterval);
                 showScreen('finish-screen');
             } catch (e) {
-                alert("Submission failed."); btn.disabled = false; btn.innerText = "Confirm & Submit";
+                console.error(e);
+                alert("Error saving result."); 
+                btn.disabled = false; 
+                btn.innerText = "CONFIRM & SUBMIT";
             }
         };
 
-        // --- Admin ---
         window.openAdmin = () => {
             const pw = prompt("Admin Password:");
             if(pw === "admin123") { showScreen('admin-panel'); loadResults(); }
-            else { alert("Access Denied"); }
-        };
-
-        window.deleteResult = async (docId) => {
-            if(!confirm("Are you sure you want to delete this result? This cannot be undone.")) return;
-            try {
-                await deleteDoc(doc(db, "artifacts", appId, "public", "data", "quiz_results", docId));
-                loadResults(); // Refresh table
-            } catch (e) {
-                alert("Error deleting record.");
-            }
+            else { alert("Incorrect password."); }
         };
 
         async function loadResults() {
-            const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "quiz_results")));
+            const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "quiz_results"), orderBy("at", "desc")));
             const tbody = document.getElementById('results-body');
             tbody.innerHTML = '';
-            
-            let csvHeader = "Name,Place,Mobile,Score,";
-            for(let i=1; i<=10; i++) csvHeader += `Q${i},`;
-            csvHeader += "Timestamp\n";
-
-            let csvRows = "";
-            
+            let count = 0;
             qSnap.forEach(snap => {
+                count++;
                 const d = snap.data();
-                const id = snap.id;
-                const sel = d.selections || Array(10).fill("-");
-                
-                const row = `<tr class="hover:bg-blue-50/50 transition-colors">
-                    <td class="p-4 border-b font-medium text-slate-700">${d.name}</td>
-                    <td class="p-4 border-b text-slate-500">${d.place}</td>
-                    <td class="p-4 border-b font-mono text-slate-500">${d.mobile}</td>
-                    <td class="p-4 border-b text-center"><span class="bg-blue-600 text-white px-3 py-1 rounded-full font-bold">${d.score}/10</span></td>
-                    <td class="p-4 border-b text-right">
-                        <button onclick="deleteResult('${id}')" class="text-red-400 hover:text-red-600 transition-colors p-2" title="Delete Result">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                        </button>
-                    </td>
-                </tr>`;
-                tbody.innerHTML += row;
-
-                let csvRow = `"${d.name}","${d.place}","${d.mobile}",${d.score},`;
-                sel.forEach(s => csvRow += `"${s.toUpperCase()}",`);
-                csvRow += `"${d.at?.toDate().toLocaleString() || ''}"\n`;
-                csvRows += csvRow;
+                tbody.innerHTML += `<tr class="border-b"><td class="p-4 font-bold">${d.name}</td><td class="p-4">${d.place}</td><td class="p-4 font-mono text-[10px]">${d.mobile}</td><td class="p-4 text-center font-black">${d.score}/10</td><td class="p-4 text-right"><button onclick="deleteResult('${snap.id}')" class="text-red-400">X</button></td></tr>`;
             });
-
-            window.downloadCSV = () => {
-                const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `TheLightJuniors_Results_${new Date().toISOString().split('T')[0]}.csv`;
-                a.click();
-            };
+            document.getElementById('total-count').innerText = count;
         }
-    </script>
-</head>
-<body class="bg-slate-50 min-h-screen p-4 flex flex-col items-center font-sans">
 
-    <nav class="w-full max-w-2xl flex justify-between items-center mb-6">
-        <a href="https://iqkod.github.io/TheLightJuniors/" class="flex items-center gap-2 text-blue-600 font-bold hover:opacity-75">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            HOME
+        window.deleteResult = async (id) => {
+            if(confirm("Delete record?")) {
+                await deleteDoc(doc(db, "artifacts", appId, "public", "data", "quiz_results", id));
+                loadResults();
+            }
+        };
+    </script>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] min-h-screen p-4 flex flex-col items-center">
+
+    <nav class="w-full max-w-2xl flex justify-between items-center mb-8 mt-2">
+        <a href="https://iqkod.github.io/TheLightJuniors/" class="flex items-center gap-2 text-blue-700 font-black hover:scale-105 transition-transform text-xs tracking-widest">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            BACK TO HOME
         </a>
-        <div class="text-slate-400 text-xs font-black uppercase tracking-widest">The Light Juniors</div>
+        <div id="timer-box" class="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2 shadow-sm border border-blue-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span id="timer-display">10:00</span>
+        </div>
     </nav>
 
-    <div class="max-w-2xl w-full bg-white rounded-3xl shadow-2xl shadow-blue-900/5 overflow-hidden border border-white">
-        
-        <div class="bg-gradient-to-br from-blue-700 to-blue-500 p-8 text-center text-white">
-            <h1 class="text-3xl font-black tracking-tight">QUIZ PORTAL</h1>
-            <p class="text-blue-100/80 text-sm mt-2 font-medium uppercase tracking-wider italic">Surah Al-Insan • English Edition</p>
-        </div>
+    <div class="max-w-2xl w-full bg-white rounded-[2.5rem] shadow-2xl shadow-blue-900/10 overflow-hidden border border-slate-100 relative">
+        <div class="h-2 w-full bg-blue-600"></div>
 
-        <div class="p-8">
-            <!-- Login -->
-            <div id="login-screen" class="space-y-5">
-                
-                <div class="space-y-4">
-                    <input type="text" id="name" placeholder="Full Student Name" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium">
-                    <input type="text" id="place" placeholder="Location / Place" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium">
-                    <input type="text" id="mobile" placeholder="Mobile Number (966-XXXXXXXXX)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium">
+        <div class="p-8 md:p-12">
+            
+            <div id="login-screen" class="space-y-6">
+                <div class="text-center mb-10">
+                    <h1 class="text-4xl font-black text-slate-800 tracking-tight mb-2 uppercase italic">Start Quiz</h1>
+                    <p class="text-slate-400 text-sm font-semibold tracking-wide">10 Minutes Limit • English Edition</p>
                 </div>
-                <button onclick="startQuiz()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all shadow-xl shadow-blue-200">START QUIZ</button>
-                <div class="text-center pt-8 opacity-20 hover:opacity-100 transition-opacity">
-                    <button onclick="openAdmin()" class="text-[10px] font-black uppercase tracking-widest text-slate-400 underline">Admin Login</button>
+                <input type="text" id="name" placeholder="Full Name" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
+                <input type="text" id="place" placeholder="Your Place" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
+                <input type="text" id="mobile" placeholder="Mobile (966-XXXXXXXXX)" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
+                <button onclick="startQuiz()" class="w-full bg-blue-600 text-white p-6 rounded-[1.5rem] font-black text-xl hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200">CONTINUE</button>
+                <div class="text-center pt-8 border-t border-slate-50">
+                    <button onclick="openAdmin()" class="text-[10px] font-black tracking-[0.3em] text-slate-200 hover:text-blue-400">Admin Panel</button>
                 </div>
             </div>
 
-            <!-- Quiz Screen -->
-            <div id="quiz-screen" class="hidden animate-in fade-in duration-300">
-                <div class="mb-8">
-                    <div class="flex justify-between items-end mb-3">
-                        <span id="q-title" class="text-xs font-black text-blue-600 uppercase tracking-widest"></span>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Review & Prev enabled</span>
+            <div id="quiz-screen" class="hidden animate-in">
+                <div class="mb-10">
+                    <div class="flex justify-between items-end mb-4">
+                        <h2 id="q-title" class="text-sm font-black text-blue-600 uppercase tracking-widest"></h2>
                     </div>
-                    <div class="w-full bg-slate-100 h-3 rounded-full p-0.5">
-                        <div id="progress-bar" class="bg-blue-600 h-full rounded-full transition-all duration-700 w-0 shadow-sm shadow-blue-400"></div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="bg-blue-600 h-full transition-all duration-500 w-0"></div>
                     </div>
                 </div>
-
-                <h2 id="q-text" class="text-xl font-bold text-slate-800 mb-8 min-h-[5rem] leading-snug"></h2>
-                
-                <div class="space-y-3 mb-10">
-                    <button id="btn-opt-a" onclick="selectOption('a')" class="w-full text-left p-5 border-2 rounded-2xl transition-all flex items-center gap-5 group">
-                        <span class="w-8 h-8 rounded-full flex items-center justify-center font-black bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600">A</span>
-                        <span id="opt-a" class="flex-1 font-semibold"></span>
+                <h3 id="q-text" class="text-xl md:text-2xl font-bold text-slate-800 mb-10 leading-tight"></h3>
+                <div class="space-y-4 mb-12">
+                    <button id="btn-opt-a" onclick="selectOption('a')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">A</span>
+                        <span id="opt-a" class="flex-1 font-bold"></span>
                     </button>
-                    <button id="btn-opt-b" onclick="selectOption('b')" class="w-full text-left p-5 border-2 rounded-2xl transition-all flex items-center gap-5 group">
-                        <span class="w-8 h-8 rounded-full flex items-center justify-center font-black bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600">B</span>
-                        <span id="opt-b" class="flex-1 font-semibold"></span>
+                    <button id="btn-opt-b" onclick="selectOption('b')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">B</span>
+                        <span id="opt-b" class="flex-1 font-bold"></span>
                     </button>
-                    <button id="btn-opt-c" onclick="selectOption('c')" class="w-full text-left p-5 border-2 rounded-2xl transition-all flex items-center gap-5 group">
-                        <span class="w-8 h-8 rounded-full flex items-center justify-center font-black bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600">C</span>
-                        <span id="opt-c" class="flex-1 font-semibold"></span>
+                    <button id="btn-opt-c" onclick="selectOption('c')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">C</span>
+                        <span id="opt-c" class="flex-1 font-bold"></span>
                     </button>
-                    <button id="btn-opt-d" onclick="selectOption('d')" class="w-full text-left p-5 border-2 rounded-2xl transition-all flex items-center gap-5 group">
-                        <span class="w-8 h-8 rounded-full flex items-center justify-center font-black bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600">D</span>
-                        <span id="opt-d" class="flex-1 font-semibold"></span>
+                    <button id="btn-opt-d" onclick="selectOption('d')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">D</span>
+                        <span id="opt-d" class="flex-1 font-bold"></span>
                     </button>
                 </div>
-
-                <div class="flex justify-between items-center">
-                    <button id="prev-btn" onclick="goPrev()" class="text-slate-400 font-black text-xs uppercase tracking-widest hover:text-blue-600 transition-colors py-3 pr-6">
-                        ← Previous
-                    </button>
-                    <button id="next-btn" onclick="goNextOrReview()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all shadow-lg">
-                        Next
-                    </button>
+                <div class="flex justify-between items-center pt-6 border-t border-slate-50">
+                    <button id="prev-btn" onclick="goPrev()" class="text-slate-400 font-black text-xs uppercase tracking-widest">← Back</button>
+                    <button id="next-btn" onclick="goNextOrReview()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em]">Next</button>
                 </div>
             </div>
 
-            <!-- Review Screen -->
-            <div id="review-screen" class="hidden">
+            <div id="review-screen" class="hidden animate-in">
                 <div class="text-center mb-8">
-                    <h2 class="text-2xl font-black text-slate-800 italic uppercase">Review Summary</h2>
-                    <p class="text-slate-400 text-sm font-medium">Verify your choices before final submission</p>
+                    <h2 class="text-3xl font-black text-slate-800 italic uppercase">Review Answers</h2>
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Check your selections before final submission</p>
                 </div>
-                
-                <div id="review-list" class="space-y-2 mb-10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"></div>
-
-                <div class="grid grid-cols-1 gap-4">
-                    <button id="final-submit-btn" onclick="submitResult()" class="w-full bg-green-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-green-700 transition-all shadow-xl shadow-green-100">
-                        CONFIRM & SUBMIT
-                    </button>
-                    <button onclick="editQuestion(0)" class="text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-blue-600">
-                        Start Over Review
-                    </button>
-                </div>
+                <div id="review-list" class="space-y-4 mb-10 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar border rounded-[2rem] p-4 bg-slate-50/50"></div>
+                <button id="final-submit-btn" onclick="submitResult()" class="w-full bg-emerald-600 text-white p-6 rounded-[1.5rem] font-black text-xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100">CONFIRM & SUBMIT</button>
             </div>
 
-            <!-- Finish Screen -->
-            <div id="finish-screen" class="hidden text-center py-16 animate-in zoom-in duration-500">
-                <div class="relative w-24 h-24 mx-auto mb-8">
-                    <div class="absolute inset-0 bg-green-500 rounded-full opacity-20 animate-ping"></div>
-                    <div class="relative bg-green-500 text-white w-24 h-24 rounded-full flex items-center justify-center text-5xl font-black">✓</div>
-                </div>
-                <h2 class="text-4xl font-black text-slate-800 italic uppercase mb-3">Mubarak!</h2>
-                <p class="text-slate-500 font-medium max-w-xs mx-auto mb-10 leading-relaxed">Your answers and details have been securely saved for the teachers.</p>
-                <a href="https://iqkod.github.io/TheLightJuniors/" class="inline-block bg-slate-900 text-white px-12 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all">
-                    Return to Portal
-                </a>
+            <div id="finish-screen" class="hidden text-center py-20 animate-in">
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-8">✓</div>
+                <h2 class="text-4xl font-black text-slate-800 italic uppercase mb-4">Success!</h2>
+                <p class="text-slate-500 font-bold mb-12">Your quiz has been submitted successfully.</p>
+                <a href="https://iqkod.github.io/TheLightJuniors/" class="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em]">Return Home</a>
             </div>
 
-            <!-- Admin Panel -->
-            <div id="admin-panel" class="hidden">
-                <div class="flex justify-between items-center mb-10 pb-6 border-b">
-                    <div>
-                        <h2 class="font-black text-2xl text-slate-800 italic uppercase">Dashboard</h2>
-                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Full Detail Export Enabled</p>
-                    </div>
-                    <button onclick="downloadCSV()" class="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-100">
-                        Download Excel (Full)
-                    </button>
+            <div id="admin-panel" class="hidden animate-in">
+                <div class="mb-6 flex justify-between items-center">
+                    <h2 class="font-black text-2xl uppercase">Results (<span id="total-count">0</span>)</h2>
+                    <button onclick="loadResults()" class="text-blue-600 text-[10px] font-black uppercase tracking-widest">Refresh</button>
                 </div>
-                <div class="overflow-x-auto rounded-2xl border border-slate-100 bg-white">
-                    <table class="w-full text-xs text-left">
-                        <thead class="bg-slate-50 uppercase text-[10px] font-black text-slate-400 tracking-tighter">
-                            <tr>
-                                <th class="p-5">Name</th>
-                                <th class="p-5">Place</th>
-                                <th class="p-5">Mobile</th>
-                                <th class="p-5 text-center">Score</th>
-                                <th class="p-5 text-right">Action</th>
-                            </tr>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 uppercase font-black text-slate-400">
+                            <tr><th class="p-4">Name</th><th class="p-4">Place</th><th class="p-4">Mobile</th><th class="p-4">Score</th><th class="p-4"></th></tr>
                         </thead>
-                        <tbody id="results-body" class="divide-y divide-slate-100"></tbody>
+                        <tbody id="results-body"></tbody>
                     </table>
                 </div>
-                <div class="mt-12 flex justify-between items-center">
-                    <button onclick="location.reload()" class="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-600">Exit Admin</button>
-                    <span class="text-[9px] text-slate-300 font-bold uppercase tracking-[0.2em]">The Light Juniors Internal Tool</span>
-                </div>
+                <button onclick="location.reload()" class="mt-8 text-xs font-bold text-slate-400 uppercase">Exit Admin</button>
             </div>
 
         </div>
     </div>
-
-    <p class="mt-10 text-[10px] text-slate-300 font-black uppercase tracking-[0.3em]">Managed by The Light Juniors</p>
-
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-    </style>
-
 </body>
 </html>
