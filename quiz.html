@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Light Juniors - Quiz</title>
+    <title>The Light Juniors - Quiz & Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -27,53 +27,37 @@
         const appId = "thelightjuniors";
 
         let user = null;
-
-        const initAuth = async () => {
-            try {
-                await signInAnonymously(auth);
-            } catch (err) {
-                console.error("Auth failed", err);
-            }
-        };
-
         onAuthStateChanged(auth, (u) => { user = u; });
+        const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) {} };
         initAuth();
 
-        // Question Data
+        // Data
         const questions = [
             { q: "What will the people in Paradise be given to drink as mentioned in the current portion?", a: "A pure and refreshing drink", b: "A cup of wine mixed with ginger", c: "A cup of wine mixed with camphor", d: "A bitter drink used for healing", correct: "b" },
             { q: "What is the name of the spring that comes from a root meaning soft or delicious, which is drawn in Paradise?", a: "Kawthar", b: "Zamzam", c: "Tasneem", d: "Salsabeel", correct: "d" },
-            { q: "The 'immortal boys' mentioned in the verse 'Immortal boys will circulate among them; if you saw them, you would think they were scattered pearls' refers to:", a: "They are created in paradise to remain therein", b: "They will never change or grow old", c: "They are very handsome", d: "All of the above", correct: "d" },
-            { q: "What will you see if you look at Paradise, according to the verse وَإِذَارَأَيْتَ ثَمَّ رែأَيْتَ نَعِيمًۭا وَمُلْكًۭا كَبِيرًا ?", a: "Darkness and fear", b: "Chains and raging fire", c: "Bliss and a vast domain", d: "Only empty gardens", correct: "c" },
-            { q: "What garments will the people of Paradise wear according to verse ?", a: "White garments of cotton", b: "Red garments of wool", c: "Blue garments of linen", d: "Green garments of fine silk and heavy brocade", correct: "d" },
-            { q: "Which of the following is true about the people of Paradise according to the passage ?", a: "They will wear green garments of fine silk and heavy brocade", b: "They will be adorned with bracelets of silver", c: "They will be given a pure beverage to drink by their Lord", d: "All of the above", correct: "d" },
-            { q: "In the verse “and their Lord will give them to drink a pure beverage” the ‘pure beverage’ implies:", a: "A drink in which there is no impurity or contamination", b: "A delicious but impure drink", c: "A drink which cleanses their hearts of all hurt and pain", d: "Both A and C", correct: "d" },
-            { q: "''And ......................... morning and afternoon''; Fill in the blanks from the verse", a: "prostrate to your Lord", b: "Glorify your Lord a long part of the night", c: "Remember the name of your Lord", d: "Both A and B", correct: "c" },
-            { q: "According to the verse, إِنَّ هَـٰٓؤُلَآءِ يُحِبُّونَ ٱلْعَاجِلَةَ وَيَذَرُونَ وَرَآءَهُمْ يَوْمًۭا , ثَقِيلًۭا Why do the disbelievers pay no heed ?", a: "They love this present life and pay no heed to a day that will be arduous", b: "They love the Hereafter more", c: "They fear the Day of Resurrection greatly", d: "They worship Allah day and night", correct: "a" },
-            { q: "The length of the Day of Resurrection is described according to the passage as:", a: "An infinite number of years", b: "Fifty years", c: "Not defined", d: "Fifty thousand years", correct: "d" }
+            { q: "The 'immortal boys' mentioned in the verse refers to:", a: "They are created in paradise to remain therein", b: "They will never change or grow old", c: "They are very handsome", d: "All of the above", correct: "d" },
+            { q: "What will you see if you look at Paradise, according to the verse?", a: "Darkness and fear", b: "Chains and raging fire", c: "Bliss and a vast domain", d: "Only empty gardens", correct: "c" },
+            { q: "What garments will the people of Paradise wear?", a: "White garments of cotton", b: "Red garments of wool", c: "Blue garments of linen", d: "Green garments of fine silk and heavy brocade", correct: "d" },
+            { q: "Which of the following is true about the people of Paradise?", a: "Green garments of fine silk", b: "Adorned with bracelets of silver", c: "Pure beverage from their Lord", d: "All of the above", correct: "d" },
+            { q: "The ‘pure beverage’ implies:", a: "No impurity", b: "Delicious but impure", c: "Cleanses their hearts of hurt", d: "Both A and C", correct: "d" },
+            { q: "Fill in the blanks: 'And ......................... morning and afternoon'", a: "prostrate to your Lord", b: "Glorify your Lord", c: "Remember the name of your Lord", d: "Both A and B", correct: "c" },
+            { q: "Why do the disbelievers pay no heed?", a: "They love this present life", b: "They love the Hereafter", c: "They fear Resurrection", d: "They worship Allah", correct: "a" },
+            { q: "Length of the Day of Resurrection:", a: "Infinite", b: "Fifty years", c: "Not defined", d: "Fifty thousand years", correct: "d" }
         ];
 
         const allowedMobiles = ["966-501797382","966-599122138","966-557544882","91-7356160643","966-576737310","91-8281539208","91-6235828844","966-535768609","966-505191459","44-7624376081","44-7624489327","61-0401619365","91-6235928844","91-6238041679","91-7025511457","91-7025785391","91-7034139883","91-7034253576","91-7034399820","91-7306540074","91-7558871351","91-7560956711","91-7594803054","91-7902448701","91-7902470316","91-7907034843","91-8129686991","91-8129764186","91-8157860261","91-8304063560","91-8714267974","91-8714801835","91-8848193358","91-9037267974","91-9207658678","91-9496699612","91-9539360509","91-9567256340","91-9629988903","91-9633035008","91-9645328773","91-9645395415","91-9656912678","91-9744205385","91-9745616062","91-9817111151","91-9843918413","91-9847193435","91-9847302529","91-9895991116","91-9900953430","91-9946050257","91-9947709622","965-50905731","966-500677517","966-500967745","966-501154403","966-501250188","966-501527780","966-501534407","966-502163791","966-503262990","966-503679542","966-503766632","966-504165135","966-504186982","966-504383232","966-504435135","966-505332710","966-505765817","966-505797935","966-506729657","966-506830680","966-506942737","966-507177103","966-508032152","966-508194715","966-508222053","966-508386571","966-508742148","966-508815960","966-508854732","966-509229487","966-509262992","966-509292062","966-509402136","966-510360426","966-530141819","966-530960342","966-531894076","966-532063993","966-532679687","966-532796405","966-532963089","966-533594582","966-533689757","966-534314336","966-536273182","966-536296334","966-536474235","966-537637215","966-538531297","966-539101716","966-539302907","966-539867101","966-540247380","966-541247266","966-541632275","966-541851574","966-541885929","966-542099671","966-543718439","966-543779651","966-543820213","966-545094153","966-545136406","966-545442493","966-545900025","966-546549197","966-546678286","966-546940420","966-546991610","966-548420429","966-549840171","966-550619441","966-550989676","966-551508035","966-551582755","966-551758148","966-551876182","966-552455305","966-552465305","966-552640798","966-552915784","966-553602809","966-554021052","966-554078961","966-555069168","966-556096654","966-556475906","966-556857931","966-558675808","966-561486272","966-562129566","966-562834251","966-563161829","966-564843475","966-564984695","966-565951942","966-566780847","966-567133278","966-567316632","966-567596578","966-567830655","966-567971022","966-568258888","966-569180023","966-569534791","966-570173640","966-570802341","966-570828420","966-571918309","966-572099478","966-572957971","966-574359871","966-574980699","966-576050581","966-580591263","966-581965286","966-591277136","966-592598969","966-595088137","966-595171618","966-599215214","971-524832451","971-555245457","971-557424082","971-561432359","971-563963407","971-586655864","971-588822419","91-9964946252","965-99794592","966-530992783","966-531458085","966-534495300","966-535460233","966-553382689","966-554415618","966-556752858","966-566443377","966-571053310","966-597053063","91-9633987889","966-506613574","966-535821533","966-548421962","966-565460233","966-571472518","91-7337505186","966-538451880","966-562133065","966-508451880","966-538024360","966-531954480","966-539004619","966-549295586","966-564546985","966-599934246","91-9447156453"];
 
-        let currentStep = 0; // 0: Login, 1: Quiz, 2: Finished
-        let currentQuestion = 0;
         let studentData = { name: '', place: '', mobile: '' };
         let studentAnswers = [];
+        let currentQuestion = 0;
 
+        // --- Student Functions ---
         window.startQuiz = () => {
             const name = document.getElementById('name').value.trim();
             const place = document.getElementById('place').value.trim();
             const mobile = document.getElementById('mobile').value.trim();
-
-            if (!name || !place || !mobile) {
-                showMsg("Please fill all fields", "red");
-                return;
-            }
-
-            if (!allowedMobiles.includes(mobile)) {
-                showMsg("Mobile number not authorized", "red");
-                return;
-            }
+            if(!name || !place || !mobile) return alert("Fill all fields");
+            if(!allowedMobiles.includes(mobile)) return alert("Mobile not authorized");
 
             studentData = { name, place, mobile };
             document.getElementById('login-screen').classList.add('hidden');
@@ -85,150 +69,139 @@
             const q = questions[currentQuestion];
             document.getElementById('q-title').innerText = `Question ${currentQuestion + 1} of 10`;
             document.getElementById('q-text').innerText = q.q;
-            document.getElementById('opt-a').innerText = q.a;
-            document.getElementById('opt-b').innerText = q.b;
-            document.getElementById('opt-c').innerText = q.c;
-            document.getElementById('opt-d').innerText = q.d;
+            ['a','b','c','d'].forEach(l => document.getElementById('opt-'+l).innerText = q[l]);
             document.getElementById('progress-bar').style.width = `${(currentQuestion + 1) * 10}%`;
         };
 
-        window.selectOption = (opt) => {
-            studentAnswers.push({
-                question: currentQuestion + 1,
-                answer: opt,
-                isCorrect: opt === questions[currentQuestion].correct
-            });
-
-            if (currentQuestion < questions.length - 1) {
+        window.selectOption = async (opt) => {
+            studentAnswers.push({ q: currentQuestion + 1, ans: opt, ok: opt === questions[currentQuestion].correct });
+            if (currentQuestion < 9) {
                 currentQuestion++;
                 renderQuestion();
             } else {
-                submitFinalResults();
+                await submitResult();
             }
         };
 
-        const submitFinalResults = async () => {
-            document.getElementById('quiz-screen').innerHTML = `
-                <div class="text-center py-10">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p class="mt-4 text-gray-600">Submitting your answers...</p>
-                </div>
-            `;
+        const submitResult = async () => {
+            const score = studentAnswers.filter(a => a.ok).length;
+            await addDoc(collection(db, "artifacts", appId, "public", "data", "quiz_results"), {
+                ...studentData,
+                score,
+                details: studentAnswers,
+                at: serverTimestamp()
+            });
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('finish-screen').classList.remove('hidden');
+        };
 
-            if (!user) {
-                showMsg("Authentication error. Please refresh.", "red");
-                return;
-            }
-
-            const score = studentAnswers.filter(a => a.isCorrect).length;
-
-            try {
-                await addDoc(collection(db, "artifacts", appId, "public", "data", "quiz_scores"), {
-                    ...studentData,
-                    answers: studentAnswers,
-                    finalScore: score,
-                    timestamp: serverTimestamp()
-                });
-
-                document.getElementById('quiz-screen').classList.add('hidden');
-                document.getElementById('finish-screen').classList.remove('hidden');
-            } catch (e) {
-                console.error("Error:", e);
-                showMsg("Failed to save. Please check connection.", "red");
+        // --- Admin Functions ---
+        window.openAdmin = () => {
+            const pw = prompt("Enter Admin Password:");
+            if(pw === "admin123") {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                loadResults();
+            } else {
+                alert("Wrong password");
             }
         };
 
-        function showMsg(txt, color) {
-            const m = document.getElementById('msg');
-            m.innerText = txt;
-            m.className = `mt-3 text-center text-sm font-bold text-${color}-600`;
+        async function loadResults() {
+            const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "quiz_results")));
+            const tbody = document.getElementById('results-body');
+            tbody.innerHTML = '';
+            
+            let csvData = "Name,Place,Mobile,Score,Timestamp\n";
+            
+            qSnap.forEach(doc => {
+                const d = doc.data();
+                const row = `<tr>
+                    <td class="p-2 border">${d.name}</td>
+                    <td class="p-2 border">${d.place}</td>
+                    <td class="p-2 border">${d.mobile}</td>
+                    <td class="p-2 border font-bold text-blue-600">${d.score}/10</td>
+                </tr>`;
+                tbody.innerHTML += row;
+                csvData += `"${d.name}","${d.place}","${d.mobile}",${d.score},"${d.at?.toDate().toLocaleString() || ''}"\n`;
+            });
+
+            window.downloadCSV = () => {
+                const blob = new Blob([csvData], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'quiz_results.csv');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
         }
     </script>
-    <style>
-        .option-btn { @apply w-full text-left p-4 mb-3 border rounded-lg hover:bg-blue-50 transition-colors border-gray-200 font-medium; }
-    </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 min-h-screen p-4 flex flex-col items-center">
 
-    <div class="max-w-lg w-full bg-white rounded-2xl shadow-xl p-8">
+    <div class="max-w-xl w-full bg-white rounded-xl shadow-lg p-6 mt-10">
         
-        <!-- Header -->
-        <div class="text-center mb-8 border-b pb-4">
-            <h1 class="text-2xl font-bold text-blue-800">The Light Juniors</h1>
-            <p class="text-gray-500 text-sm">Online Islamic Quiz Series</p>
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">The Light Juniors Quiz</h1>
+            <p class="text-sm text-slate-500 italic">English Edition</p>
         </div>
 
-        <!-- Login Screen -->
-        <div id="login-screen">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 uppercase ml-1 mb-1">Full Name</label>
-                    <input type="text" id="name" placeholder="Enter student name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 uppercase ml-1 mb-1">Place</label>
-                    <input type="text" id="place" placeholder="City / State" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 uppercase ml-1 mb-1">Mobile Number</label>
-                    <input type="text" id="mobile" placeholder="e.g. 966-501797382" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
-                    <p class="text-[10px] text-gray-400 mt-1">* Use international format as provided (e.g. 966-xxxxxxxx)</p>
-                </div>
-                <button onclick="startQuiz()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition transform active:scale-95 shadow-lg">
-                    START QUIZ
-                </button>
-                <p id="msg" class="text-center"></p>
+        <!-- Login -->
+        <div id="login-screen" class="space-y-4">
+            <input type="text" id="name" placeholder="Student Name" class="w-full p-3 border rounded-lg">
+            <input type="text" id="place" placeholder="Place" class="w-full p-3 border rounded-lg">
+            <input type="text" id="mobile" placeholder="Mobile (966-xxxxxxxx)" class="w-full p-3 border rounded-lg">
+            <button onclick="startQuiz()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700">Start Quiz</button>
+            <div class="text-center mt-10 opacity-30">
+                <button onclick="openAdmin()" class="text-xs underline">Admin Access</button>
             </div>
         </div>
 
-        <!-- Quiz Screen -->
+        <!-- Quiz -->
         <div id="quiz-screen" class="hidden">
-            <div class="mb-6">
-                <div class="flex justify-between items-center mb-2">
-                    <span id="q-title" class="text-sm font-bold text-blue-600">Question 1 of 10</span>
-                    <span class="text-xs text-gray-400">Quran Quiz</span>
-                </div>
-                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                    <div id="progress-bar" class="bg-blue-600 h-full transition-all duration-300" style="width: 10%"></div>
-                </div>
+            <div class="mb-4">
+                <div class="flex justify-between text-xs mb-1"><span id="q-title"></span><span>10 Questions Total</span></div>
+                <div class="w-full bg-gray-200 h-1.5 rounded-full"><div id="progress-bar" class="bg-blue-600 h-full rounded-full w-0"></div></div>
             </div>
-
-            <h2 id="q-text" class="text-lg font-semibold text-gray-800 mb-6 leading-relaxed">
-                Loading question...
-            </h2>
-
+            <h2 id="q-text" class="text-lg font-semibold mb-6"></h2>
             <div class="space-y-3">
-                <button onclick="selectOption('a')" class="option-btn flex items-center">
-                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0">A</span>
-                    <span id="opt-a">Option A</span>
-                </button>
-                <button onclick="selectOption('b')" class="option-btn flex items-center">
-                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0">B</span>
-                    <span id="opt-b">Option B</span>
-                </button>
-                <button onclick="selectOption('c')" class="option-btn flex items-center">
-                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0">C</span>
-                    <span id="opt-c">Option C</span>
-                </button>
-                <button onclick="selectOption('d')" class="option-btn flex items-center">
-                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0">D</span>
-                    <span id="opt-d">Option D</span>
-                </button>
+                <button onclick="selectOption('a')" class="w-full text-left p-3 border rounded-lg hover:bg-blue-50">A. <span id="opt-a"></span></button>
+                <button onclick="selectOption('b')" class="w-full text-left p-3 border rounded-lg hover:bg-blue-50">B. <span id="opt-b"></span></button>
+                <button onclick="selectOption('c')" class="w-full text-left p-3 border rounded-lg hover:bg-blue-50">C. <span id="opt-c"></span></button>
+                <button onclick="selectOption('d')" class="w-full text-left p-3 border rounded-lg hover:bg-blue-50">D. <span id="opt-d"></span></button>
             </div>
         </div>
 
-        <!-- Finish Screen -->
-        <div id="finish-screen" class="hidden text-center py-6">
-            <div class="mb-6 inline-block p-4 bg-green-100 rounded-full">
-                <svg class="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
+        <!-- Finish -->
+        <div id="finish-screen" class="hidden text-center py-10">
+            <div class="text-5xl mb-4">✅</div>
+            <h2 class="text-2xl font-bold mb-2">Thank You!</h2>
+            <p class="text-slate-600">Your answers have been saved. The teacher will review your results.</p>
+        </div>
+
+        <!-- Admin Panel -->
+        <div id="admin-panel" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-xl">Admin Dashboard</h2>
+                <button onclick="downloadCSV()" class="bg-green-600 text-white px-3 py-1 text-sm rounded hover:bg-green-700">Download Excel (CSV)</button>
             </div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Quiz Completed!</h2>
-            <p class="text-gray-600 mb-8">Your responses have been successfully submitted to the admin panel. Thank you for participating!</p>
-            <div class="bg-blue-50 p-4 rounded-lg text-sm text-blue-700 font-medium">
-                The results will be announced soon.
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="p-2 border">Name</th>
+                            <th class="p-2 border">Place</th>
+                            <th class="p-2 border">Mobile</th>
+                            <th class="p-2 border">Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
             </div>
+            <button onclick="location.reload()" class="mt-4 text-sm text-blue-600 underline">Back to Login</button>
         </div>
 
     </div>
