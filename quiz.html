@@ -31,6 +31,17 @@
         const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) {} };
         initAuth();
 
+        // Load saved details on startup
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedName = localStorage.getItem('tlj_name');
+            const savedPlace = localStorage.getItem('tlj_place');
+            const savedMobile = localStorage.getItem('tlj_mobile');
+            
+            if(savedName) document.getElementById('name').value = savedName;
+            if(savedPlace) document.getElementById('place').value = savedPlace;
+            if(savedMobile) document.getElementById('mobile').value = savedMobile;
+        });
+
         const questions = [
             { q: "What will the people in Paradise be given to drink as mentioned in the current portion?", a: "A pure and refreshing drink", b: "A cup of wine mixed with ginger", c: "A cup of wine mixed with camphor", d: "A bitter drink used for healing", correct: "b" },
             { q: "What is the name of the spring that comes from a root meaning soft or delicious, which is drawn in Paradise?", a: "Kawthar", b: "Zamzam", c: "Tasneem", d: "Salsabeel", correct: "d" },
@@ -61,8 +72,14 @@
             const name = document.getElementById('name').value.trim();
             const place = document.getElementById('place').value.trim();
             const mobile = document.getElementById('mobile').value.trim();
+            
             if(!name || !place || !mobile) return alert("Fill all fields");
             if(!allowedMobiles.includes(mobile)) return alert("Mobile not authorized");
+
+            // Save details to localStorage for future visits
+            localStorage.setItem('tlj_name', name);
+            localStorage.setItem('tlj_place', place);
+            localStorage.setItem('tlj_mobile', mobile);
 
             studentData = { name, place, mobile };
             showScreen('quiz-screen');
@@ -140,7 +157,7 @@
                 await addDoc(collection(db, "artifacts", appId, "public", "data", "quiz_results"), {
                     ...studentData,
                     score,
-                    selections: studentSelections, // Storing as simple array [a, b, d...]
+                    selections: studentSelections,
                     at: serverTimestamp()
                 });
                 showScreen('finish-screen');
@@ -161,7 +178,6 @@
             const tbody = document.getElementById('results-body');
             tbody.innerHTML = '';
             
-            // CSV Header Construction
             let csvHeader = "Name,Place,Mobile,Score,";
             for(let i=1; i<=10; i++) csvHeader += `Q${i},`;
             csvHeader += "Timestamp\n";
@@ -170,7 +186,7 @@
             
             qSnap.forEach(doc => {
                 const d = doc.data();
-                const sel = d.selections || Array(10).fill("-"); // Fallback for old data
+                const sel = d.selections || Array(10).fill("-");
                 
                 const row = `<tr class="hover:bg-blue-50/50 transition-colors">
                     <td class="p-4 border-b font-medium text-slate-700">${d.name}</td>
@@ -180,7 +196,6 @@
                 </tr>`;
                 tbody.innerHTML += row;
 
-                // CSV Data Row Construction
                 let csvRow = `"${d.name}","${d.place}","${d.mobile}",${d.score},`;
                 sel.forEach(s => csvRow += `"${s.toUpperCase()}",`);
                 csvRow += `"${d.at?.toDate().toLocaleString() || ''}"\n`;
@@ -218,6 +233,9 @@
         <div class="p-8">
             <!-- Login -->
             <div id="login-screen" class="space-y-5">
+                <div class="bg-blue-50/50 p-4 rounded-xl text-[10px] text-blue-700 font-bold uppercase tracking-widest text-center mb-4 border border-blue-100">
+                    Details are saved on this browser for your convenience
+                </div>
                 <div class="space-y-4">
                     <input type="text" id="name" placeholder="Full Student Name" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium">
                     <input type="text" id="place" placeholder="Location / Place" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium">
@@ -279,9 +297,7 @@
                     <p class="text-slate-400 text-sm font-medium">Verify your choices before final submission</p>
                 </div>
                 
-                <div id="review-list" class="space-y-2 mb-10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    <!-- Dynamic review items -->
-                </div>
+                <div id="review-list" class="space-y-2 mb-10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"></div>
 
                 <div class="grid grid-cols-1 gap-4">
                     <button id="final-submit-btn" onclick="submitResult()" class="w-full bg-green-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-green-700 transition-all shadow-xl shadow-green-100">
