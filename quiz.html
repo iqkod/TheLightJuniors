@@ -13,18 +13,14 @@
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Quiz Header with Back Link -->
+    <!-- Quiz Header -->
     <div class="w-full max-w-md mb-4 flex justify-between items-center">
-        <a href="index.html" class="text-blue-600 text-sm font-bold flex items-center">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            Home
-        </a>
-        <span class="text-slate-400 text-xs">The Light Juniors</span>
+        <h1 class="text-blue-600 text-sm font-bold">The Light Juniors Quiz</h1>
+        <span id="live-status" class="text-slate-400 text-[10px]">Connecting...</span>
     </div>
 
     <!-- Main Quiz Card -->
     <div id="quiz-container" class="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
-        
         <div class="bg-blue-600 p-8 text-white text-center">
             <h1 class="text-2xl font-black mb-1">ക്വിസ് മത്സരം</h1>
             <p class="opacity-90 font-medium text-sm">സൗദി ഇന്ത്യൻ ഇസ്ലാഹി സെന്റർ</p>
@@ -37,8 +33,8 @@
                 <input id="reg-place" type="text" placeholder="സ്ഥലം" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 <input id="reg-phone" type="text" placeholder="രജിസ്റ്റർ നമ്പർ" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 
-                <p id="error-msg" class="text-red-500 text-xs hidden"></p>
-                <button onclick="handleStart()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg">തുടങ്ങുക</button>
+                <p id="error-msg" class="text-red-500 text-xs hidden font-bold text-center"></p>
+                <button onclick="handleStart()" id="start-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg">തുടങ്ങുക</button>
             </div>
 
             <!-- Quiz Play Area -->
@@ -58,111 +54,32 @@
                 <div class="text-green-500 text-6xl">✓</div>
                 <h2 class="text-2xl font-black">വിജയകരമായി പൂർത്തിയാക്കി!</h2>
                 <p class="text-slate-500 text-sm">നിങ്ങളുടെ ഉത്തരങ്ങൾ രേഖപ്പെടുത്തിയിട്ടുണ്ട്. നന്ദി.</p>
-                <button onclick="location.reload()" class="text-blue-600 font-bold text-sm underline mt-4">വീണ്ടും ചെയ്യുക</button>
+                <button onclick="location.reload()" class="text-blue-600 font-bold text-sm underline mt-4">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- Hidden Admin Trigger -->
-    <div class="mt-8 text-[10px] text-slate-300 select-none cursor-default" ondblclick="toggleAdmin()">ADMIN PANEL</div>
-    
-    <div id="admin-section" class="hidden-section w-full max-w-md mt-4 bg-white p-4 rounded-xl shadow-lg border">
-        <h3 class="font-bold text-blue-800 mb-2">Submissions</h3>
-        <div class="max-h-40 overflow-y-auto">
-             <table class="w-full text-xs text-left">
-                <tbody id="admin-table-body"></tbody>
-             </table>
+    <!-- Admin View -->
+    <div class="mt-8 text-[10px] text-slate-300 select-none cursor-pointer" onclick="toggleAdmin()">ADMIN PANEL</div>
+    <div id="admin-section" class="hidden-section w-full max-w-4xl mt-4 bg-white p-6 rounded-xl shadow-lg border overflow-x-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-blue-800">Results (Exel Format)</h3>
+            <button onclick="exportToExcel()" class="bg-green-600 text-white text-xs px-3 py-1 rounded">Download Excel</button>
         </div>
+        <table id="results-table" class="w-full text-xs text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-100">
+                    <th class="p-2 border">Name</th>
+                    <th class="p-2 border">Place</th>
+                    <th class="p-2 border">Reg No</th>
+                    <th class="p-2 border">Score</th>
+                    <th class="p-2 border">Percentage</th>
+                    <th class="p-2 border">Answers</th>
+                </tr>
+            </thead>
+            <tbody id="admin-table-body"></tbody>
+        </table>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        const firebaseConfig = JSON.parse(__firebase_config || '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'the-light-juniors-quiz';
-        
-        let db, auth;
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            signInAnonymously(auth);
-        } catch(e) { console.error("Firebase not configured"); }
-
-        const QUESTIONS = [
-            { q: "ബത്ത യൂണിറ്റിൽ ക്ലാസ് നടക്കുന്നത് എന്ന്?", o: ["തിങ്കൾ", "ചൊവ്വ", "ബുധൻ", "വെള്ളി"], c: 1 },
-            { q: "ഖുർആനിലെ ആകെ സൂറത്തുകൾ എത്ര?", o: ["110", "114", "120", "124"], c: 1 },
-            { q: "ഇസ്ലാഹി സെന്ററിന്റെ ആസ്ഥാനം എവിടെ?", o: ["കോഴിക്കോട്", "മലപ്പുറം", "എറണാകുളം", "റിയാദ്"], c: 3 }
-        ];
-
-        let currentIdx = 0;
-        let score = 0;
-        let user = {};
-
-        window.handleStart = () => {
-            const name = document.getElementById('reg-name').value;
-            const place = document.getElementById('reg-place').value;
-            const reg = document.getElementById('reg-phone').value;
-            if(!name || !place || !reg) {
-                document.getElementById('error-msg').innerText = "വിവരങ്ങൾ പൂർണ്ണമല്ല";
-                document.getElementById('error-msg').classList.remove('hidden');
-                return;
-            }
-            user = { name, place, reg };
-            document.getElementById('register-section').classList.add('hidden-section');
-            document.getElementById('quiz-section').classList.remove('hidden-section');
-            renderQuestion();
-        };
-
-        window.renderQuestion = () => {
-            const q = QUESTIONS[currentIdx];
-            document.getElementById('q-text').innerText = q.q;
-            document.getElementById('q-counter').innerText = `ചോദ്യം ${currentIdx + 1} / ${QUESTIONS.length}`;
-            document.getElementById('progress-bar').style.width = `${((currentIdx + 1) / QUESTIONS.length) * 100}%`;
-            
-            const container = document.getElementById('options-container');
-            container.innerHTML = '';
-            q.o.forEach((opt, i) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 rounded-xl border border-slate-200 hover:bg-blue-50 transition";
-                btn.innerText = opt;
-                btn.onclick = () => {
-                    if(i === q.c) score++;
-                    if(currentIdx < QUESTIONS.length - 1) {
-                        currentIdx++;
-                        renderQuestion();
-                    } else {
-                        submitResult();
-                    }
-                };
-                container.appendChild(btn);
-            });
-        };
-
-        async function submitResult() {
-            document.getElementById('quiz-section').classList.add('hidden-section');
-            document.getElementById('finish-section').classList.remove('hidden-section');
-            if(db) {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'submissions'), {
-                    ...user, score, total: QUESTIONS.length, time: new Date().toISOString()
-                });
-            }
-        }
-
-        window.toggleAdmin = () => {
-            document.getElementById('admin-section').classList.toggle('hidden-section');
-            if(db) {
-                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'submissions'), (snap) => {
-                    const tbody = document.getElementById('admin-table-body');
-                    tbody.innerHTML = snap.docs.map(doc => {
-                        const d = doc.data();
-                        return `<tr class="border-b"><td>${d.name}</td><td>${d.score}/${d.total}</td></tr>`;
-                    }).join('');
-                });
-            }
-        };
-    </script>
-</body>
-</html>
