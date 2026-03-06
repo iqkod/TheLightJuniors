@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Islahi Quiz - Saudi Indian Islahi Center</title>
+    <title>The Light Juniors - Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -13,122 +13,104 @@
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Quiz Card -->
-    <div id="quiz-container" class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+    <!-- Quiz Header with Back Link -->
+    <div class="w-full max-w-md mb-4 flex justify-between items-center">
+        <a href="index.html" class="text-blue-600 text-sm font-bold flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            Home
+        </a>
+        <span class="text-slate-400 text-xs">The Light Juniors</span>
+    </div>
+
+    <!-- Main Quiz Card -->
+    <div id="quiz-container" class="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
         
-        <!-- Header -->
         <div class="bg-blue-600 p-8 text-white text-center">
             <h1 class="text-2xl font-black mb-1">ക്വിസ് മത്സരം</h1>
             <p class="opacity-90 font-medium text-sm">സൗദി ഇന്ത്യൻ ഇസ്ലാഹി സെന്റർ</p>
         </div>
 
         <div class="p-8">
-            <!-- 1. Registration Section -->
-            <div id="register-section" class="space-y-5">
-                <p class="text-center text-slate-500 text-sm mb-4">പങ്കെടുക്കാൻ വിവരങ്ങൾ നൽകുക</p>
-                <input id="reg-name" type="text" placeholder="പേര്" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
-                <input id="reg-place" type="text" placeholder="സ്ഥലം" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
-                <input id="reg-phone" type="text" placeholder="രജിസ്റ്റർ നമ്പർ (966-XXXXXXXXX)" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+            <!-- Registration -->
+            <div id="register-section" class="space-y-4">
+                <input id="reg-name" type="text" placeholder="പേര്" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                <input id="reg-place" type="text" placeholder="സ്ഥലം" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                <input id="reg-phone" type="text" placeholder="രജിസ്റ്റർ നമ്പർ" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 
                 <p id="error-msg" class="text-red-500 text-xs hidden"></p>
-                <button onclick="handleStart()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition transform active:scale-95">തുടങ്ങുക</button>
+                <button onclick="handleStart()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg">തുടങ്ങുക</button>
             </div>
 
-            <!-- 2. Quiz Section -->
+            <!-- Quiz Play Area -->
             <div id="quiz-section" class="hidden-section space-y-6">
-                <div class="flex justify-between items-center text-xs font-bold text-blue-600 uppercase tracking-wider">
+                <div class="flex justify-between items-center text-xs font-bold text-blue-600 uppercase">
                     <span id="q-counter">ചോദ്യം 1 / 3</span>
                 </div>
                 <div class="h-1.5 w-full bg-slate-100 rounded-full">
                     <div id="progress-bar" class="h-full bg-blue-600 rounded-full transition-all duration-300" style="width: 33%"></div>
                 </div>
-                <h2 id="q-text" class="text-xl font-bold leading-relaxed min-h-[80px]">ചോദ്യം ഇവിടെ വരും?</h2>
-                <div id="options-container" class="space-y-3">
-                    <!-- Options injected here -->
-                </div>
+                <h2 id="q-text" class="text-xl font-bold leading-relaxed">ചോദ്യം ലോഡ് ചെയ്യുന്നു...</h2>
+                <div id="options-container" class="space-y-3"></div>
             </div>
 
-            <!-- 3. Finish Section -->
-            <div id="finish-section" class="hidden-section text-center py-8 space-y-4">
-                <div class="text-green-500 text-6xl mb-2">✓</div>
-                <h2 class="text-2xl font-black text-slate-800">പൂർത്തിയായി!</h2>
-                <p class="text-slate-500 text-sm px-4">നിങ്ങളുടെ ഉത്തരങ്ങൾ സേവ് ചെയ്തിട്ടുണ്ട്. പങ്കെടുത്തതിന് നന്ദി.</p>
-                <div class="pt-4 border-t border-slate-50 mt-4">
-                    <p class="text-[10px] text-slate-400 uppercase">Status</p>
-                    <p class="font-bold text-slate-600">Submitted Successfully</p>
-                </div>
-            </div>
-
-            <!-- Admin Section -->
-            <div id="admin-section" class="hidden-section mt-6 border-t pt-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-blue-800">Admin Panel</h3>
-                    <button onclick="downloadCSV()" class="bg-green-600 text-white px-2 py-1 rounded text-[10px]">Download CSV</button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-[10px] text-left">
-                        <thead><tr class="bg-slate-50">
-                            <th class="p-1 border">Name</th><th class="p-1 border">Score</th>
-                        </tr></thead>
-                        <tbody id="admin-table-body"></tbody>
-                    </table>
-                </div>
+            <!-- Result -->
+            <div id="finish-section" class="hidden-section text-center py-6 space-y-4">
+                <div class="text-green-500 text-6xl">✓</div>
+                <h2 class="text-2xl font-black">വിജയകരമായി പൂർത്തിയാക്കി!</h2>
+                <p class="text-slate-500 text-sm">നിങ്ങളുടെ ഉത്തരങ്ങൾ രേഖപ്പെടുത്തിയിട്ടുണ്ട്. നന്ദി.</p>
+                <button onclick="location.reload()" class="text-blue-600 font-bold text-sm underline mt-4">വീണ്ടും ചെയ്യുക</button>
             </div>
         </div>
     </div>
 
-    <button ondblclick="toggleAdmin()" class="mt-8 text-[10px] text-slate-300 select-none">ADMIN DASHBOARD</button>
+    <!-- Hidden Admin Trigger -->
+    <div class="mt-8 text-[10px] text-slate-300 select-none cursor-default" ondblclick="toggleAdmin()">ADMIN PANEL</div>
+    
+    <div id="admin-section" class="hidden-section w-full max-w-md mt-4 bg-white p-4 rounded-xl shadow-lg border">
+        <h3 class="font-bold text-blue-800 mb-2">Submissions</h3>
+        <div class="max-h-40 overflow-y-auto">
+             <table class="w-full text-xs text-left">
+                <tbody id="admin-table-body"></tbody>
+             </table>
+        </div>
+    </div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // Firebase Config (Empty by default, provided by env)
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'islahi-quiz-v1';
+        const firebaseConfig = JSON.parse(__firebase_config || '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'the-light-juniors-quiz';
+        
+        let db, auth;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            signInAnonymously(auth);
+        } catch(e) { console.error("Firebase not configured"); }
 
-        // Auth
-        let currentUser = null;
-        signInAnonymously(auth).then(cred => currentUser = cred.user);
-
-        const VALID_NUMBERS = ["966-501797382", "966-599122138", "91-7356160643"]; // Add more here
         const QUESTIONS = [
-            { q: "ബത്ത യൂണിറ്റിൽ ക്ലാസ് നടക്കുന്ന ദിവസം ഏത്?", o: ["തിങ്കൾ", "ചൊവ്വ", "ബുധൻ", "വെള്ളി"], c: 1 },
-            { q: "ദാറുൽ ഖുർആൻ മദ്രസയുടെ സിലബസ് ഏതാണ്?", o: ["CIER", "NCERT", "പ്രത്യേക സിലബസ്സ് ഇല്ല", "CISR"], c: 0 },
-            { q: "വിശുദ്ധ ഖുർആനിലെ ആകെ സൂറത്തുകൾ എത്ര?", o: ["110", "114", "120", "124"], c: 1 }
+            { q: "ബത്ത യൂണിറ്റിൽ ക്ലാസ് നടക്കുന്നത് എന്ന്?", o: ["തിങ്കൾ", "ചൊവ്വ", "ബുധൻ", "വെള്ളി"], c: 1 },
+            { q: "ഖുർആനിലെ ആകെ സൂറത്തുകൾ എത്ര?", o: ["110", "114", "120", "124"], c: 1 },
+            { q: "ഇസ്ലാഹി സെന്ററിന്റെ ആസ്ഥാനം എവിടെ?", o: ["കോഴിക്കോട്", "മലപ്പുറം", "എറണാകുളം", "റിയാദ്"], c: 3 }
         ];
 
         let currentIdx = 0;
         let score = 0;
-        let userData = { name: '', place: '', reg: '' };
-        let allSubmissions = [];
+        let user = {};
 
-        // Global functions
         window.handleStart = () => {
             const name = document.getElementById('reg-name').value;
             const place = document.getElementById('reg-place').value;
             const reg = document.getElementById('reg-phone').value;
-            const err = document.getElementById('error-msg');
-
             if(!name || !place || !reg) {
-                err.innerText = "എല്ലാ വിവരങ്ങളും നൽകുക";
-                err.classList.remove('hidden');
+                document.getElementById('error-msg').innerText = "വിവരങ്ങൾ പൂർണ്ണമല്ല";
+                document.getElementById('error-msg').classList.remove('hidden');
                 return;
             }
-            
-            // Check valid number
-            if(!VALID_NUMBERS.includes(reg)) {
-                err.innerText = "ക്ഷമിക്കണം, ഈ നമ്പർ ലിസ്റ്റിൽ ഇല്ല";
-                err.classList.remove('hidden');
-                return;
-            }
-
-            userData = { name, place, reg };
+            user = { name, place, reg };
             document.getElementById('register-section').classList.add('hidden-section');
             document.getElementById('quiz-section').classList.remove('hidden-section');
             renderQuestion();
@@ -144,77 +126,42 @@
             container.innerHTML = '';
             q.o.forEach((opt, i) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 rounded-2xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 font-medium transition active:bg-blue-100";
+                btn.className = "w-full text-left p-4 rounded-xl border border-slate-200 hover:bg-blue-50 transition";
                 btn.innerText = opt;
-                btn.onclick = () => handleAnswer(i);
+                btn.onclick = () => {
+                    if(i === q.c) score++;
+                    if(currentIdx < QUESTIONS.length - 1) {
+                        currentIdx++;
+                        renderQuestion();
+                    } else {
+                        submitResult();
+                    }
+                };
                 container.appendChild(btn);
             });
         };
 
-        window.handleAnswer = async (idx) => {
-            if(idx === QUESTIONS[currentIdx].c) score++;
-            
-            if(currentIdx < QUESTIONS.length - 1) {
-                currentIdx++;
-                renderQuestion();
-            } else {
-                await submitToFirebase();
-            }
-        };
-
-        async function submitToFirebase() {
+        async function submitResult() {
             document.getElementById('quiz-section').classList.add('hidden-section');
             document.getElementById('finish-section').classList.remove('hidden-section');
-
-            const result = {
-                ...userData,
-                score,
-                total: QUESTIONS.length,
-                timestamp: new Date().toISOString()
-            };
-
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'submissions'), result);
-            } catch (e) {
-                console.error("Firebase Error", e);
+            if(db) {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'submissions'), {
+                    ...user, score, total: QUESTIONS.length, time: new Date().toISOString()
+                });
             }
         }
 
-        // Admin functionality
         window.toggleAdmin = () => {
-            const adminSec = document.getElementById('admin-section');
-            adminSec.classList.toggle('hidden-section');
-            
-            if(!adminSec.classList.contains('hidden-section')) {
-                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'submissions'));
-                onSnapshot(q, (snap) => {
-                    const list = snap.docs.map(d => d.data());
-                    allSubmissions = list;
+            document.getElementById('admin-section').classList.toggle('hidden-section');
+            if(db) {
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'submissions'), (snap) => {
                     const tbody = document.getElementById('admin-table-body');
-                    tbody.innerHTML = list.map(item => `
-                        <tr>
-                            <td class="p-1 border">${item.name}</td>
-                            <td class="p-1 border text-center">${item.score}/${item.total}</td>
-                        </tr>
-                    `).join('');
+                    tbody.innerHTML = snap.docs.map(doc => {
+                        const d = doc.data();
+                        return `<tr class="border-b"><td>${d.name}</td><td>${d.score}/${d.total}</td></tr>`;
+                    }).join('');
                 });
             }
-        };
-
-        window.downloadCSV = () => {
-            let csv = "Name,Place,Reg,Score,Total\n";
-            allSubmissions.forEach(s => {
-                csv += `${s.name},${s.place},${s.reg},${s.score},${s.total}\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'quiz_results.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
         };
     </script>
 </body>
