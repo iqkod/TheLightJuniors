@@ -142,7 +142,16 @@
 </head>
 <body class="bg-slate-100 min-h-screen p-4 flex flex-col items-center">
 
-    <div class="max-w-xl w-full bg-white rounded-xl shadow-lg p-6 mt-10">
+    <!-- Navigation Bar -->
+    <nav class="w-full max-w-xl flex justify-between items-center mb-6 px-2">
+        <a href="https://iqkod.github.io/TheLightJuniors/" class="flex items-center gap-2 text-blue-600 font-bold hover:text-blue-800 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            HOME
+        </a>
+        <div class="text-slate-400 text-sm font-medium">The Light Juniors</div>
+    </nav>
+
+    <div class="max-w-xl w-full bg-white rounded-xl shadow-lg p-6">
         
         <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-slate-800">The Light Juniors Quiz</h1>
@@ -151,11 +160,11 @@
 
         <!-- Login -->
         <div id="login-screen" class="space-y-4">
-            <input type="text" id="name" placeholder="Student Name" class="w-full p-3 border rounded-lg">
-            <input type="text" id="place" placeholder="Place" class="w-full p-3 border rounded-lg">
-            <input type="text" id="mobile" placeholder="Mobile (966-xxxxxxxx)" class="w-full p-3 border rounded-lg">
-            <button onclick="startQuiz()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700">Start Quiz</button>
-            <div class="text-center mt-10 opacity-30">
+            <input type="text" id="name" placeholder="Student Name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="text" id="place" placeholder="Place" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="text" id="mobile" placeholder="Mobile (966-xxxxxxxx)" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <button onclick="startQuiz()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition-colors">Start Quiz</button>
+            <div class="text-center mt-10 opacity-30 hover:opacity-100 transition-opacity">
                 <button onclick="openAdmin()" class="text-xs underline">Admin Access</button>
             </div>
         </div>
@@ -163,45 +172,67 @@
         <!-- Quiz -->
         <div id="quiz-screen" class="hidden">
             <div class="mb-4">
-                <div class="flex justify-between text-xs mb-1"><span id="q-title"></span><span>10 Questions Total</span></div>
-                <div class="w-full bg-gray-200 h-1.5 rounded-full"><div id="progress-bar" class="bg-blue-600 h-full rounded-full w-0"></div></div>
+                <div class="flex justify-between text-xs mb-1 text-slate-500 font-medium">
+                    <span id="q-title"></span>
+                    <span>10 Questions Total</span>
+                </div>
+                <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-600 h-full transition-all duration-300 w-0"></div>
+                </div>
             </div>
-            <h2 id="q-text" class="text-lg font-semibold mb-6"></h2>
+            <h2 id="q-text" class="text-lg font-semibold text-slate-800 mb-6 min-h-[3rem]"></h2>
             <div class="space-y-3">
-                <button onclick="selectOption('a')" class="w-full text-left p-3 border rounded-lg hover:bg-blue-50">A. <span id="opt-a"></span></button>
-                <button onclick="selectOption('b')" class="w-full text-left p-3 border rounded-lg hover:bg-blue-50">B. <span id="opt-b"></span></button>
-                <button onclick="selectOption('c')" class="w-full text-left p-3 border rounded-lg hover:bg-blue-50">C. <span id="opt-c"></span></button>
-                <button onclick="selectOption('d')" class="w-full text-left p-3 border rounded-lg hover:bg-blue-50">D. <span id="opt-d"></span></button>
+                <button onclick="selectOption('a')" class="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-200 transition-all flex items-start gap-3">
+                    <span class="font-bold text-blue-600">A.</span> <span id="opt-a" class="text-slate-700"></span>
+                </button>
+                <button onclick="selectOption('b')" class="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-200 transition-all flex items-start gap-3">
+                    <span class="font-bold text-blue-600">B.</span> <span id="opt-b" class="text-slate-700"></span>
+                </button>
+                <button onclick="selectOption('c')" class="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-200 transition-all flex items-start gap-3">
+                    <span class="font-bold text-blue-600">C.</span> <span id="opt-c" class="text-slate-700"></span>
+                </button>
+                <button onclick="selectOption('d')" class="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-200 transition-all flex items-start gap-3">
+                    <span class="font-bold text-blue-600">D.</span> <span id="opt-d" class="text-slate-700"></span>
+                </button>
             </div>
         </div>
 
         <!-- Finish -->
         <div id="finish-screen" class="hidden text-center py-10">
-            <div class="text-5xl mb-4">✅</div>
-            <h2 class="text-2xl font-bold mb-2">Thank You!</h2>
-            <p class="text-slate-600">Your answers have been saved. The teacher will review your results.</p>
+            <div class="text-6xl mb-4">✨</div>
+            <h2 class="text-2xl font-bold mb-2 text-slate-800">Mubarak!</h2>
+            <p class="text-slate-600 mb-8">Your answers have been saved. The teacher will review your results soon.</p>
+            <a href="https://iqkod.github.io/TheLightJuniors/" class="inline-block bg-slate-800 text-white px-8 py-3 rounded-lg font-semibold hover:bg-slate-900 transition-colors">
+                Return to Home
+            </a>
         </div>
 
         <!-- Admin Panel -->
         <div id="admin-panel" class="hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="font-bold text-xl">Admin Dashboard</h2>
-                <button onclick="downloadCSV()" class="bg-green-600 text-white px-3 py-1 text-sm rounded hover:bg-green-700">Download Excel (CSV)</button>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h2 class="font-bold text-xl text-slate-800">Admin Dashboard</h2>
+                <button onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 text-sm rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Export CSV
+                </button>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto border rounded-lg">
                 <table class="w-full text-sm text-left border-collapse">
-                    <thead class="bg-slate-50">
+                    <thead class="bg-slate-50 border-b">
                         <tr>
-                            <th class="p-2 border">Name</th>
-                            <th class="p-2 border">Place</th>
-                            <th class="p-2 border">Mobile</th>
-                            <th class="p-2 border">Score</th>
+                            <th class="p-3 font-semibold text-slate-600">Name</th>
+                            <th class="p-3 font-semibold text-slate-600">Place</th>
+                            <th class="p-3 font-semibold text-slate-600">Mobile</th>
+                            <th class="p-3 font-semibold text-slate-600 text-right">Score</th>
                         </tr>
                     </thead>
-                    <tbody id="results-body"></tbody>
+                    <tbody id="results-body" class="divide-y divide-slate-100"></tbody>
                 </table>
             </div>
-            <button onclick="location.reload()" class="mt-4 text-sm text-blue-600 underline">Back to Login</button>
+            <div class="mt-6 flex justify-between items-center">
+                <button onclick="location.reload()" class="text-sm font-semibold text-blue-600 hover:text-blue-800">Logout</button>
+                <span class="text-xs text-slate-400">The Light Juniors Management</span>
+            </div>
         </div>
 
     </div>
