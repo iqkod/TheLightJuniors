@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Light Juniors - Quiz Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <!-- Firebase SDK -->
     <script type="module">
@@ -31,9 +33,10 @@
         let studentData = { name: '', place: '', mobile: '' };
         let studentSelections = Array(10).fill(null);
         let currentQuestion = 0;
-        let timeLeft = 600; // 10 minutes in seconds
+        let timeLeft = 600; 
         let timerInterval = null;
         let isSubmitted = false;
+        let allResultsData = []; // Store fetched results for export
 
         // AUTHENTICATION
         onAuthStateChanged(auth, (u) => { user = u; });
@@ -88,15 +91,7 @@
         const updateTimerUI = () => {
             const min = Math.floor(timeLeft / 60);
             const sec = timeLeft % 60;
-            const timeStr = `${min}:${sec < 10 ? '0' : ''}${sec}`;
-            document.getElementById('timer-display').innerText = timeStr;
-            
-            // Visual alert when low time
-            const timerBox = document.getElementById('timer-box');
-            if (timeLeft <= 60) {
-                timerBox.classList.remove('text-slate-400');
-                timerBox.classList.add('text-red-500', 'animate-pulse');
-            }
+            document.getElementById('timer-display').innerText = `${min}:${sec < 10 ? '0' : ''}${sec}`;
         };
 
         const autoSubmit = async () => {
@@ -105,18 +100,43 @@
             await window.submitResult();
         };
 
-        window.startQuiz = () => {
+        const checkExistingSubmission = async (mobile) => {
+            const resultsRef = collection(db, "artifacts", appId, "public", "data", "quiz_results");
+            const q = query(resultsRef); 
+            const querySnapshot = await getDocs(q);
+            let alreadyExists = false;
+            querySnapshot.forEach((doc) => { if(doc.data().mobile === mobile) alreadyExists = true; });
+            return alreadyExists;
+        };
+
+        window.startQuiz = async () => {
             const name = document.getElementById('name').value.trim();
             const place = document.getElementById('place').value.trim();
             const mobile = document.getElementById('mobile').value.trim();
             
             if(!name || !place || !mobile) return alert("Please fill all fields.");
-            if(!allowedMobiles.includes(mobile)) return alert("This mobile number is not authorized.");
+            if(!allowedMobiles.includes(mobile)) return alert("Mobile number not authorized.");
+
+            const submitBtn = document.querySelector('#login-screen button');
+            submitBtn.innerText = "Verifying...";
+            submitBtn.disabled = true;
+
+            try {
+                if(await checkExistingSubmission(mobile)) {
+                    alert("This number has already submitted. Multiple attempts are not allowed.");
+                    submitBtn.innerText = "CONTINUE";
+                    submitBtn.disabled = false;
+                    return;
+                }
+            } catch (e) {
+                submitBtn.innerText = "CONTINUE";
+                submitBtn.disabled = false;
+                return;
+            }
 
             localStorage.setItem('tlj_name', name);
             localStorage.setItem('tlj_place', place);
             localStorage.setItem('tlj_mobile', mobile);
-
             studentData = { name, place, mobile };
             showScreen('quiz-screen');
             startTimer();
@@ -127,12 +147,9 @@
             const q = questions[currentQuestion];
             document.getElementById('q-title').innerText = `Question ${currentQuestion + 1} of 10`;
             document.getElementById('q-text').innerText = q.q;
-            
             ['a','b','c','d'].forEach(l => {
                 const btn = document.getElementById('btn-opt-' + l);
-                const text = document.getElementById('opt-' + l);
-                text.innerText = q[l];
-                
+                document.getElementById('opt-' + l).innerText = q[l];
                 if (studentSelections[currentQuestion] === l) {
                     btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
                     btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
@@ -141,19 +158,13 @@
                     btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
                 }
             });
-
             document.getElementById('prev-btn').style.visibility = currentQuestion === 0 ? 'hidden' : 'visible';
             document.getElementById('next-btn').innerText = currentQuestion === 9 ? 'Review Answers' : 'Next';
             document.getElementById('progress-bar').style.width = `${(currentQuestion + 1) * 10}%`;
         };
 
-        window.selectOption = (opt) => {
-            studentSelections[currentQuestion] = opt;
-            renderQuestion();
-        };
-
+        window.selectOption = (opt) => { studentSelections[currentQuestion] = opt; renderQuestion(); };
         window.goPrev = () => { if (currentQuestion > 0) { currentQuestion--; renderQuestion(); } };
-
         window.goNextOrReview = () => {
             if (studentSelections[currentQuestion] === null) return alert("Please select an answer.");
             if (currentQuestion < 9) { currentQuestion++; renderQuestion(); } else { showReview(); }
@@ -165,21 +176,9 @@
             container.innerHTML = '';
             questions.forEach((q, i) => {
                 const sel = studentSelections[i];
-                const answerText = sel ? q[sel] : "No answer selected";
-                
                 const item = document.createElement('div');
-                item.className = "flex flex-col p-5 border-b text-sm bg-white hover:bg-slate-50 transition-colors";
-                item.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="font-black text-blue-600 uppercase text-[10px] tracking-widest">Question ${i+1}</span>
-                        <button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] uppercase tracking-wider underline">Edit</button>
-                    </div>
-                    <div class="text-slate-800 font-bold mb-3 leading-snug">${q.q}</div>
-                    <div class="flex items-center gap-3">
-                        <span class="w-6 h-6 rounded bg-blue-600 text-white flex items-center justify-center font-black text-[10px] shrink-0 uppercase">${sel || '?'}</span>
-                        <span class="text-slate-500 font-medium">${answerText}</span>
-                    </div>
-                `;
+                item.className = "flex flex-col p-5 border-b text-sm bg-white";
+                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1}</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-blue-600 text-white flex items-center justify-center text-[10px]">${sel || '?'}</span><span>${sel ? q[sel] : "No answer"}</span></div>`;
                 container.appendChild(item);
             });
         };
@@ -189,85 +188,94 @@
         window.submitResult = async () => {
             if (isSubmitted) return;
             const btn = document.getElementById('final-submit-btn');
-            btn.disabled = true; 
-            btn.innerText = "Saving Result...";
-
+            btn.disabled = true; btn.innerText = "Saving...";
             const score = studentSelections.filter((sel, i) => sel === questions[i].correct).length;
-
             try {
+                if(await checkExistingSubmission(studentData.mobile)) {
+                    alert("A submission for this number already exists.");
+                    location.reload();
+                    return;
+                }
                 await addDoc(collection(db, "artifacts", appId, "public", "data", "quiz_results"), {
-                    ...studentData,
-                    score,
-                    selections: studentSelections,
-                    at: serverTimestamp()
+                    ...studentData, score, selections: studentSelections, at: serverTimestamp()
                 });
                 isSubmitted = true;
                 if(timerInterval) clearInterval(timerInterval);
                 showScreen('finish-screen');
             } catch (e) {
-                console.error(e);
-                alert("Error saving result."); 
-                btn.disabled = false; 
-                btn.innerText = "CONFIRM & SUBMIT";
+                btn.disabled = false; btn.innerText = "CONFIRM & SUBMIT";
             }
         };
 
         window.openAdmin = () => {
-            const pw = prompt("Admin Password:");
-            if(pw === "admin123") { showScreen('admin-panel'); loadResults(); }
-            else { alert("Incorrect password."); }
+            if(prompt("Admin Password:") === "admin123") { showScreen('admin-panel'); loadResults(); }
+            else { alert("Wrong password."); }
         };
 
         async function loadResults() {
             const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "quiz_results"), orderBy("at", "desc")));
             const tbody = document.getElementById('results-body');
             tbody.innerHTML = '';
-            let count = 0;
+            allResultsData = [];
             qSnap.forEach(snap => {
-                count++;
                 const d = snap.data();
-                tbody.innerHTML += `<tr class="border-b"><td class="p-4 font-bold">${d.name}</td><td class="p-4">${d.place}</td><td class="p-4 font-mono text-[10px]">${d.mobile}</td><td class="p-4 text-center font-black">${d.score}/10</td><td class="p-4 text-right"><button onclick="deleteResult('${snap.id}')" class="text-red-400">X</button></td></tr>`;
+                allResultsData.push({ id: snap.id, ...d });
+                tbody.innerHTML += `<tr class="border-b text-xs"><td class="p-3 font-bold">${d.name}</td><td class="p-3">${d.place}</td><td class="p-3 font-mono">${d.mobile}</td><td class="p-3 text-center font-black">${d.score}/10</td><td class="p-3 text-right"><button onclick="deleteResult('${snap.id}')" class="text-red-400 font-black">X</button></td></tr>`;
             });
-            document.getElementById('total-count').innerText = count;
+            document.getElementById('total-count').innerText = allResultsData.length;
         }
 
         window.deleteResult = async (id) => {
-            if(confirm("Delete record?")) {
+            if(confirm("Allow student to try again?")) {
                 await deleteDoc(doc(db, "artifacts", appId, "public", "data", "quiz_results", id));
                 loadResults();
             }
         };
-    </script>
 
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-in { animation: fadeIn 0.4s ease-out forwards; }
-    </style>
+        window.downloadExcel = () => {
+            if(allResultsData.length === 0) return alert("No results to download.");
+            
+            const sheetData = allResultsData.map(res => {
+                const row = {
+                    "Name": res.name,
+                    "Place": res.place,
+                    "Mobile": res.mobile,
+                    "Score": res.score
+                };
+                // Add answers Q1 to Q10
+                for(let i=0; i<10; i++) {
+                    row[`Q${i+1} Selection`] = res.selections ? res.selections[i] : 'N/A';
+                }
+                return row;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(sheetData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Quiz Results");
+            XLSX.writeFile(wb, "TLJ_Quiz_Results.xlsx");
+        };
+    </script>
 </head>
 <body class="bg-[#f8fafc] min-h-screen p-4 flex flex-col items-center">
 
     <nav class="w-full max-w-2xl flex justify-between items-center mb-8 mt-2">
-        <a href="https://iqkod.github.io/TheLightJuniors/" class="flex items-center gap-2 text-blue-700 font-black hover:scale-105 transition-transform text-xs tracking-widest">
+        <a href="https://iqkod.github.io/TheLightJuniors/" class="flex items-center gap-2 text-blue-700 font-black text-xs tracking-widest">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             BACK TO HOME
         </a>
-        <div id="timer-box" class="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2 shadow-sm border border-blue-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div class="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2 border border-blue-100">
             <span id="timer-display">10:00</span>
         </div>
     </nav>
 
-    <div class="max-w-2xl w-full bg-white rounded-[2.5rem] shadow-2xl shadow-blue-900/10 overflow-hidden border border-slate-100 relative">
+    <div class="max-w-2xl w-full bg-white rounded-[2.5rem] shadow-2xl shadow-blue-900/10 overflow-hidden border border-slate-100">
         <div class="h-2 w-full bg-blue-600"></div>
-
         <div class="p-8 md:p-12">
             
             <div id="login-screen" class="space-y-6">
                 <div class="text-center mb-10">
                     <h1 class="text-4xl font-black text-slate-800 tracking-tight mb-2 uppercase italic">Start Quiz</h1>
-                    <p class="text-slate-400 text-sm font-semibold tracking-wide">10 Minutes Limit • English Edition</p>
+                    <p class="text-slate-400 text-sm font-semibold tracking-wide">10 Minutes Limit • One Attempt Only</p>
                 </div>
                 <input type="text" id="name" placeholder="Full Name" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
                 <input type="text" id="place" placeholder="Your Place" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
@@ -278,65 +286,55 @@
                 </div>
             </div>
 
-            <div id="quiz-screen" class="hidden animate-in">
+            <div id="quiz-screen" class="hidden">
                 <div class="mb-10">
-                    <div class="flex justify-between items-end mb-4">
-                        <h2 id="q-title" class="text-sm font-black text-blue-600 uppercase tracking-widest"></h2>
-                    </div>
+                    <h2 id="q-title" class="text-sm font-black text-blue-600 uppercase tracking-widest mb-4"></h2>
                     <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                         <div id="progress-bar" class="bg-blue-600 h-full transition-all duration-500 w-0"></div>
                     </div>
                 </div>
                 <h3 id="q-text" class="text-xl md:text-2xl font-bold text-slate-800 mb-10 leading-tight"></h3>
                 <div class="space-y-4 mb-12">
-                    <button id="btn-opt-a" onclick="selectOption('a')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6">
-                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">A</span>
-                        <span id="opt-a" class="flex-1 font-bold"></span>
-                    </button>
-                    <button id="btn-opt-b" onclick="selectOption('b')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6">
-                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">B</span>
-                        <span id="opt-b" class="flex-1 font-bold"></span>
-                    </button>
-                    <button id="btn-opt-c" onclick="selectOption('c')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6">
-                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">C</span>
-                        <span id="opt-c" class="flex-1 font-bold"></span>
-                    </button>
-                    <button id="btn-opt-d" onclick="selectOption('d')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6">
-                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">D</span>
-                        <span id="opt-d" class="flex-1 font-bold"></span>
-                    </button>
+                    <button id="btn-opt-a" onclick="selectOption('a')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6"><span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">A</span><span id="opt-a" class="flex-1 font-bold"></span></button>
+                    <button id="btn-opt-b" onclick="selectOption('b')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6"><span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">B</span><span id="opt-b" class="flex-1 font-bold"></span></button>
+                    <button id="btn-opt-c" onclick="selectOption('c')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6"><span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">C</span><span id="opt-c" class="flex-1 font-bold"></span></button>
+                    <button id="btn-opt-d" onclick="selectOption('d')" class="w-full text-left p-6 border-2 rounded-2xl transition-all flex items-center gap-6"><span class="w-10 h-10 rounded-xl flex items-center justify-center font-black bg-slate-100 text-slate-500 shrink-0">D</span><span id="opt-d" class="flex-1 font-bold"></span></button>
                 </div>
                 <div class="flex justify-between items-center pt-6 border-t border-slate-50">
                     <button id="prev-btn" onclick="goPrev()" class="text-slate-400 font-black text-xs uppercase tracking-widest">← Back</button>
-                    <button id="next-btn" onclick="goNextOrReview()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em]">Next</button>
+                    <button id="next-btn" onclick="goNextOrReview()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase">Next</button>
                 </div>
             </div>
 
-            <div id="review-screen" class="hidden animate-in">
+            <div id="review-screen" class="hidden">
                 <div class="text-center mb-8">
                     <h2 class="text-3xl font-black text-slate-800 italic uppercase">Review Answers</h2>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Check your selections before final submission</p>
                 </div>
-                <div id="review-list" class="space-y-4 mb-10 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar border rounded-[2rem] p-4 bg-slate-50/50"></div>
-                <button id="final-submit-btn" onclick="submitResult()" class="w-full bg-emerald-600 text-white p-6 rounded-[1.5rem] font-black text-xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100">CONFIRM & SUBMIT</button>
+                <div id="review-list" class="space-y-4 mb-10 max-h-[400px] overflow-y-auto pr-2 border rounded-3xl p-4 bg-slate-50/50"></div>
+                <button id="final-submit-btn" onclick="submitResult()" class="w-full bg-emerald-600 text-white p-6 rounded-[1.5rem] font-black text-xl hover:bg-emerald-700 shadow-xl shadow-emerald-100">CONFIRM & SUBMIT</button>
             </div>
 
-            <div id="finish-screen" class="hidden text-center py-20 animate-in">
+            <div id="finish-screen" class="hidden text-center py-20">
                 <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-8">✓</div>
                 <h2 class="text-4xl font-black text-slate-800 italic uppercase mb-4">Success!</h2>
-                <p class="text-slate-500 font-bold mb-12">Your quiz has been submitted successfully.</p>
-                <a href="https://iqkod.github.io/TheLightJuniors/" class="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em]">Return Home</a>
+                <p class="text-slate-500 font-bold mb-12">Submitted successfully.</p>
+                <a href="javascript:location.reload()" class="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em]">Home</a>
             </div>
 
-            <div id="admin-panel" class="hidden animate-in">
-                <div class="mb-6 flex justify-between items-center">
-                    <h2 class="font-black text-2xl uppercase">Results (<span id="total-count">0</span>)</h2>
-                    <button onclick="loadResults()" class="text-blue-600 text-[10px] font-black uppercase tracking-widest">Refresh</button>
+            <div id="admin-panel" class="hidden">
+                <div class="mb-6 flex flex-col gap-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="font-black text-2xl uppercase">Results (<span id="total-count">0</span>)</h2>
+                        <div class="flex gap-4">
+                            <button onclick="loadResults()" class="text-blue-600 font-black text-[10px] uppercase">Refresh</button>
+                            <button onclick="downloadExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-black text-[10px] uppercase">Download Excel</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-50 uppercase font-black text-slate-400">
-                            <tr><th class="p-4">Name</th><th class="p-4">Place</th><th class="p-4">Mobile</th><th class="p-4">Score</th><th class="p-4"></th></tr>
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 uppercase font-black text-slate-400 text-[10px]">
+                            <tr><th class="p-4">Name</th><th class="p-4">Place</th><th class="p-4">Mobile</th><th class="p-4 text-center">Score</th><th class="p-4"></th></tr>
                         </thead>
                         <tbody id="results-body"></tbody>
                     </table>
