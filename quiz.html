@@ -11,7 +11,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -68,7 +68,7 @@
         const allowedMobiles = ["966-501797382","966-599122138","966-557544882","91-7356160643","966-576737310","91-8281539208","91-6235828844","966-535768609","966-505191459","44-7624376081","44-7624489327","61-0401619365","91-6235928844","91-6238041679","91-7025511457","91-7025785391","91-7034139883","91-7034253576","91-7034399820","91-7306540074","91-7558871351","91-7560956711","91-7594803054","91-7902448701","91-7902470316","91-7907034843","91-8129686991","91-8129764186","91-8157860261","91-8304063560","91-8714267974","91-8714801835","91-8848193358","91-9037267974","91-9207658678","91-9496699612","91-9539360509","91-9567256340","91-9629988903","91-9633035008","91-9645328773","91-9645395415","91-9656912678","91-9744205385","91-9745616062","91-9817111151","91-9843918413","91-9847193435","91-9847302529","91-9895991116","91-9900953430","91-9946050257","91-9947709622","965-50905731","966-500677517","966-500967745","966-501154403","966-501250188","966-501527780","966-501534407","966-502163791","966-503262990","966-503679542","966-503766632","966-504165135","966-504186982","966-504383232","966-504435135","966-505332710","966-505765817","966-505797935","966-506729657","966-506830680","966-506942737","966-507177103","966-508032152","966-508194715","966-508222053","966-508386571","966-508742148","966-508815960","966-508854732","966-509229487","966-509262992","966-509292062","966-509402136","966-510360426","966-530141819","966-530960342","966-531894076","966-532063993","966-532679687","966-532796405","966-532963089","966-533594582","966-533689757","966-534314336","966-536273182","966-536296334","966-536474235","966-537637215","966-538531297","966-539101716","966-539302907","966-539867101","966-540247380","966-541247266","966-541632275","966-541851574","966-541885929","966-542099671","966-543718439","966-543779651","966-543820213","966-545094153","966-545136406","966-545442493","966-545900025","966-546549197","966-546678286","966-546940420","966-546991610","966-548420429","966-549840171","966-550619441","966-550989676","966-551508035","966-551582755","966-551758148","966-551876182","966-552455305","966-552465305","966-552640798","966-552915784","966-553602809","966-554021052","966-554078961","966-555069168","966-556096654","966-556475906","966-556857931","966-558675808","966-561486272","966-562129566","966-562834251","966-563161829","966-564843475","966-564984695","966-565951942","966-566780847","966-567133278","966-567316632","966-567596578","966-567830655","966-567971022","966-568258888","966-569180023","966-569534791","966-570173640","966-570802341","966-570828420","966-571918309","966-572099478","966-572957971","966-574359871","966-574980699","966-576050581","966-580591263","966-581965286","966-591277136","966-592598969","966-595088137","966-595171618","966-599215214","971-524832451","971-555245457","971-557424082","971-561432359","971-563963407","971-586655864","971-588822419","91-9964946252","965-99794592","966-530992783","966-531458085","966-534495300","966-535460233","966-553382689","966-554415618","966-556752858","966-566443377","966-571053310","966-597053063","91-9633987889","966-506613574","966-535821533","966-548421962","966-565460233","966-571472518","91-7337505186","966-538451880","966-562133065","966-508451880","966-538024360","966-531954480","966-539004619","966-549295586","966-564546985","966-599934246","91-9447156453"];
 
         const showScreen = (id) => {
-            ['login-screen', 'quiz-screen', 'review-screen', 'finish-screen', 'admin-panel'].forEach(s => {
+            ['login-screen', 'quiz-screen', 'review-screen', 'finish-screen', 'admin-panel', 'student-result-screen'].forEach(s => {
                 document.getElementById(s).classList.add('hidden');
             });
             document.getElementById(id).classList.remove('hidden');
@@ -100,13 +100,13 @@
             await window.submitResult();
         };
 
-        const checkExistingSubmission = async (mobile) => {
+        const getExistingSubmission = async (mobile) => {
             const resultsRef = collection(db, "artifacts", appId, "public", "data", "quiz_results");
             const q = query(resultsRef); 
             const querySnapshot = await getDocs(q);
-            let alreadyExists = false;
-            querySnapshot.forEach((doc) => { if(doc.data().mobile === mobile) alreadyExists = true; });
-            return alreadyExists;
+            let submission = null;
+            querySnapshot.forEach((doc) => { if(doc.data().mobile === mobile) submission = { id: doc.id, ...doc.data() }; });
+            return submission;
         };
 
         window.startQuiz = async () => {
@@ -118,18 +118,24 @@
             if(!allowedMobiles.includes(mobile)) return alert("Mobile number not authorized.");
 
             const submitBtn = document.querySelector('#login-screen button');
+            const originalText = submitBtn.innerText;
             submitBtn.innerText = "Verifying...";
             submitBtn.disabled = true;
 
             try {
-                if(await checkExistingSubmission(mobile)) {
-                    alert("This number has already submitted. Multiple attempts are not allowed.");
-                    submitBtn.innerText = "CONTINUE";
-                    submitBtn.disabled = false;
+                const existing = await getExistingSubmission(mobile);
+                if(existing) {
+                    if (existing.approved) {
+                        showStudentResult(existing);
+                    } else {
+                        alert("You have already submitted. Please wait for admin approval to view your results.");
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
+                    }
                     return;
                 }
             } catch (e) {
-                submitBtn.innerText = "CONTINUE";
+                submitBtn.innerText = originalText;
                 submitBtn.disabled = false;
                 return;
             }
@@ -137,7 +143,7 @@
             localStorage.setItem('tlj_name', name);
             localStorage.setItem('tlj_place', place);
             localStorage.setItem('tlj_mobile', mobile);
-            studentData = { name, place, mobile };
+            studentData = { name, place, mobile, approved: false };
             showScreen('quiz-screen');
             startTimer();
             renderQuestion();
@@ -191,7 +197,8 @@
             btn.disabled = true; btn.innerText = "Saving...";
             const score = studentSelections.filter((sel, i) => sel === questions[i].correct).length;
             try {
-                if(await checkExistingSubmission(studentData.mobile)) {
+                const existing = await getExistingSubmission(studentData.mobile);
+                if(existing) {
                     alert("A submission for this number already exists.");
                     location.reload();
                     return;
@@ -207,9 +214,43 @@
             }
         };
 
+        // STUDENT RESULT VIEW
+        const showStudentResult = (data) => {
+            showScreen('student-result-screen');
+            document.getElementById('sr-name').innerText = data.name;
+            document.getElementById('sr-score').innerText = `${data.score}/10`;
+            
+            const list = document.getElementById('sr-answers-list');
+            list.innerHTML = '';
+            questions.forEach((q, i) => {
+                const sel = data.selections[i];
+                const isCorrect = sel === q.correct;
+                const item = document.createElement('div');
+                item.className = `p-4 border rounded-2xl mb-4 ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`;
+                item.innerHTML = `
+                    <p class="text-[10px] font-black uppercase mb-1 ${isCorrect ? 'text-emerald-600' : 'text-red-600'}">Question ${i+1}</p>
+                    <p class="font-bold text-slate-800 text-sm mb-3">${q.q}</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="w-5 h-5 flex items-center justify-center rounded bg-slate-200 font-bold">${sel || '?'}</span>
+                            <span class="${isCorrect ? 'text-emerald-700 font-bold' : 'text-red-700 font-bold'}">Your Answer: ${sel ? q[sel] : 'Skipped'}</span>
+                        </div>
+                        ${!isCorrect ? `
+                        <div class="flex items-center gap-2 text-xs text-slate-500 italic">
+                            <span class="w-5 h-5 flex items-center justify-center rounded bg-emerald-200 font-bold text-emerald-800">${q.correct}</span>
+                            <span>Correct Answer: ${q[q.correct]}</span>
+                        </div>` : ''}
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        };
+
+        // ADMIN FUNCTIONS
         window.openAdmin = () => {
-            if(prompt("Admin Password:") === "admin123") { showScreen('admin-panel'); loadResults(); }
-            else { alert("Wrong password."); }
+            const pass = prompt("Admin Password:");
+            if(pass === "admin123") { showScreen('admin-panel'); loadResults(); }
+            else if(pass !== null) { alert("Wrong password."); }
         };
 
         async function loadResults() {
@@ -220,13 +261,54 @@
             qSnap.forEach(snap => {
                 const d = snap.data();
                 allResultsData.push({ id: snap.id, ...d });
-                tbody.innerHTML += `<tr class="border-b text-xs"><td class="p-3 font-bold">${d.name}</td><td class="p-3">${d.place}</td><td class="p-3 font-mono">${d.mobile}</td><td class="p-3 text-center font-black">${d.score}/10</td><td class="p-3 text-right"><button onclick="deleteResult('${snap.id}')" class="text-red-400 font-black">X</button></td></tr>`;
+                tbody.innerHTML += `
+                    <tr class="border-b text-xs">
+                        <td class="p-3 font-bold">${d.name}</td>
+                        <td class="p-3">${d.place}</td>
+                        <td class="p-3 font-mono">${d.mobile}</td>
+                        <td class="p-3 text-center font-black">${d.score}/10</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-black ${d.approved ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'} uppercase">
+                                ${d.approved ? 'Live' : 'Hidden'}
+                            </span>
+                        </td>
+                        <td class="p-3 text-right flex gap-3 justify-end">
+                            ${!d.approved ? `<button onclick="approveResult('${snap.id}')" class="text-blue-600 font-black">APPROVE</button>` : ''}
+                            <button onclick="deleteResult('${snap.id}')" class="text-red-400 font-black">X</button>
+                        </td>
+                    </tr>`;
             });
             document.getElementById('total-count').innerText = allResultsData.length;
         }
 
+        window.approveResult = async (id) => {
+            try {
+                const ref = doc(db, "artifacts", appId, "public", "data", "quiz_results", id);
+                await updateDoc(ref, { approved: true });
+                loadResults();
+            } catch (e) {
+                alert("Failed to approve.");
+            }
+        };
+
+        window.approveAll = async () => {
+            if(!confirm("Release all results for students to see?")) return;
+            const btn = event.target;
+            btn.innerText = "Processing...";
+            const batch = writeBatch(db);
+            allResultsData.forEach(res => {
+                if(!res.approved) {
+                    const ref = doc(db, "artifacts", appId, "public", "data", "quiz_results", res.id);
+                    batch.update(ref, { approved: true });
+                }
+            });
+            await batch.commit();
+            btn.innerText = "APPROVE ALL";
+            loadResults();
+        };
+
         window.deleteResult = async (id) => {
-            if(confirm("Allow student to try again?")) {
+            if(confirm("Delete this entry? Student can try again after deletion.")) {
                 await deleteDoc(doc(db, "artifacts", appId, "public", "data", "quiz_results", id));
                 loadResults();
             }
@@ -235,34 +317,16 @@
         const formatDate = (timestamp) => {
             if (!timestamp) return "N/A";
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-            return date.toLocaleString('en-GB', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            });
+            return date.toLocaleString('en-GB');
         };
 
         window.downloadExcel = () => {
             if(allResultsData.length === 0) return alert("No results to download.");
-            
             const sheetData = allResultsData.map(res => {
-                const row = {
-                    "Name": res.name,
-                    "Place": res.place,
-                    "Mobile": res.mobile,
-                    "Score": res.score,
-                    "Submission Time": formatDate(res.at)
-                };
-                // Add answers Q1 to Q10
-                for(let i=0; i<10; i++) {
-                    row[`Q${i+1} Selection`] = res.selections ? res.selections[i] : 'N/A';
-                }
+                const row = { "Name": res.name, "Place": res.place, "Mobile": res.mobile, "Score": res.score, "Approved": res.approved ? "Yes" : "No", "Time": formatDate(res.at) };
+                for(let i=0; i<10; i++) row[`Q${i+1}`] = res.selections ? res.selections[i] : 'N/A';
                 return row;
             });
-
             const ws = XLSX.utils.json_to_sheet(sheetData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Quiz Results");
@@ -288,15 +352,15 @@
             
             <div id="login-screen" class="space-y-6">
                 <div class="text-center mb-10">
-                    <h1 class="text-4xl font-black text-slate-800 tracking-tight mb-2 uppercase italic">Start Quiz</h1>
-                    <p class="text-slate-400 text-sm font-semibold tracking-wide">10 Minutes Limit • One Attempt Only</p>
+                    <h1 class="text-4xl font-black text-slate-800 tracking-tight mb-2 uppercase italic">Portal</h1>
+                    <p class="text-slate-400 text-sm font-semibold tracking-wide">Enter your details to Start or View Results</p>
                 </div>
                 <input type="text" id="name" placeholder="Full Name" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
                 <input type="text" id="place" placeholder="Your Place" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
                 <input type="text" id="mobile" placeholder="Mobile (966-XXXXXXXXX)" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
                 <button onclick="startQuiz()" class="w-full bg-blue-600 text-white p-6 rounded-[1.5rem] font-black text-xl hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200">CONTINUE</button>
                 <div class="text-center pt-8 border-t border-slate-50">
-                    <button onclick="openAdmin()" class="text-[10px] font-black tracking-[0.3em] text-slate-200 hover:text-blue-400">Admin Panel</button>
+                    <button onclick="openAdmin()" class="text-[10px] font-black tracking-[0.3em] text-slate-200 hover:text-blue-400 uppercase">Admin Access</button>
                 </div>
             </div>
 
@@ -322,38 +386,50 @@
 
             <div id="review-screen" class="hidden">
                 <div class="text-center mb-8">
-                    <h2 class="text-3xl font-black text-slate-800 italic uppercase">Review Answers</h2>
+                    <h2 class="text-3xl font-black text-slate-800 italic uppercase">Review</h2>
                 </div>
                 <div id="review-list" class="space-y-4 mb-10 max-h-[400px] overflow-y-auto pr-2 border rounded-3xl p-4 bg-slate-50/50"></div>
                 <button id="final-submit-btn" onclick="submitResult()" class="w-full bg-emerald-600 text-white p-6 rounded-[1.5rem] font-black text-xl hover:bg-emerald-700 shadow-xl shadow-emerald-100">CONFIRM & SUBMIT</button>
             </div>
 
+            <div id="student-result-screen" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-xs font-black text-blue-600 uppercase tracking-widest mb-2">Quiz Result</h2>
+                    <h3 id="sr-name" class="text-2xl font-black text-slate-800 uppercase italic"></h3>
+                    <div id="sr-score" class="text-5xl font-black text-blue-600 mt-4 mb-2"></div>
+                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Correct Answers</p>
+                </div>
+                <div id="sr-answers-list" class="mb-10 max-h-[450px] overflow-y-auto pr-2"></div>
+                <button onclick="location.reload()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-xs uppercase tracking-widest">Close Results</button>
+            </div>
+
             <div id="finish-screen" class="hidden text-center py-20">
                 <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-8">✓</div>
-                <h2 class="text-4xl font-black text-slate-800 italic uppercase mb-4">Success!</h2>
-                <p class="text-slate-500 font-bold mb-12">Submitted successfully.</p>
+                <h2 class="text-4xl font-black text-slate-800 italic uppercase mb-4">Done!</h2>
+                <p class="text-slate-500 font-bold mb-12">Your quiz has been submitted. Results will be visible after admin approval.</p>
                 <a href="javascript:location.reload()" class="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em]">Home</a>
             </div>
 
             <div id="admin-panel" class="hidden">
-                <div class="mb-6 flex flex-col gap-4">
+                <div class="mb-6 space-y-4">
                     <div class="flex justify-between items-center">
-                        <h2 class="font-black text-2xl uppercase">Results (<span id="total-count">0</span>)</h2>
-                        <div class="flex gap-4">
-                            <button onclick="loadResults()" class="text-blue-600 font-black text-[10px] uppercase">Refresh</button>
-                            <button onclick="downloadExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-black text-[10px] uppercase">Download Excel</button>
+                        <h2 class="font-black text-2xl uppercase italic">Results (<span id="total-count">0</span>)</h2>
+                        <div class="flex gap-2">
+                            <button onclick="loadResults()" class="p-2 text-blue-600"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></button>
+                            <button onclick="downloadExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase">Excel</button>
                         </div>
                     </div>
+                    <button onclick="approveAll()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-colors">Approve All for Students</button>
                 </div>
-                <div class="overflow-x-auto border rounded-xl">
+                <div class="overflow-x-auto border rounded-2xl bg-slate-50/50">
                     <table class="w-full text-left">
-                        <thead class="bg-slate-50 uppercase font-black text-slate-400 text-[10px]">
-                            <tr><th class="p-4">Name</th><th class="p-4">Place</th><th class="p-4">Mobile</th><th class="p-4 text-center">Score</th><th class="p-4"></th></tr>
+                        <thead class="bg-white uppercase font-black text-slate-400 text-[9px] border-b">
+                            <tr><th class="p-4">Student</th><th class="p-4">Place</th><th class="p-4">Mobile</th><th class="p-4 text-center">Score</th><th class="p-4">Status</th><th class="p-4"></th></tr>
                         </thead>
                         <tbody id="results-body"></tbody>
                     </table>
                 </div>
-                <button onclick="location.reload()" class="mt-8 text-xs font-bold text-slate-400 uppercase">Exit Admin</button>
+                <button onclick="location.reload()" class="mt-8 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-red-400">Exit Admin</button>
             </div>
 
         </div>
