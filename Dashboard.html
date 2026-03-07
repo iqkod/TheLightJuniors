@@ -113,10 +113,10 @@
             localStorage.setItem('tlj_mobile', mobile);
             studentData = { name, place, mobile };
 
-            await loadStudentDashboard();
+            await window.loadStudentDashboard();
         };
 
-        async function loadStudentDashboard() {
+        window.loadStudentDashboard = async () => {
             const btn = document.querySelector('#login-screen button');
             btn.disabled = true; btn.innerText = "Loading Dashboard...";
 
