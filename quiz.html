@@ -238,12 +238,23 @@
         };
 
         window.downloadExcel = () => {
-            if(allResultsData.length === 0) return;
-            const ws = XLSX.utils.json_to_sheet(allResultsData.map(r => ({ Name: r.name, Place: r.place, Mobile: r.mobile, Score: r.score, Approved: r.approved })));
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Results");
-            XLSX.writeFile(wb, "TLJ_Results.xlsx");
-        };
+            if(allResultsData.length === 0) return alert("No results to download.");
+            
+            const sheetData = allResultsData.map(res => {
+                const row = {
+                    "Name": res.name,
+                    "Place": res.place,
+                    "Mobile": res.mobile,
+                    "Score": res.score,
+                    "Submission Time": formatDate(res.at)
+                };
+                // Add answers Q1 to Q10
+                for(let i=0; i<10; i++) {
+                    row[`Q${i+1} Selection`] = res.selections ? res.selections[i] : 'N/A';
+                }
+                return row;
+            });
+
     </script>
 </head>
 <body class="bg-[#f8fafc] min-h-screen p-4 flex flex-col items-center">
