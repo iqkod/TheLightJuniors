@@ -192,7 +192,7 @@
             questions.forEach((q, i) => {
                 const sel = studentSelections[i];
                 const selUpper = sel ? sel.toUpperCase() : '?';
-                const textLabel = sel ? `Option ${selUpper}` : "No answer";
+                const textLabel = sel ? q[sel] : "No answer";
                 const item = document.createElement('div');
                 item.className = "flex flex-col p-5 border-b text-sm bg-white";
                 item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1}</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline hover:text-blue-700 transition-colors">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold text-slate-700">${textLabel}</span></div>`;
