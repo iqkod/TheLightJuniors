@@ -85,6 +85,7 @@
                     return;
                 }
                 timeLeft--;
+                localStorage.setItem(`tlj_timer_${studentData.mobile}`, timeLeft.toString());
                 updateTimerUI();
             }, 1000);
         };
@@ -147,6 +148,22 @@
             studentData = { name, place, mobile, approved: false };
             hasReachedReview = false;
             showScreen('quiz-screen');
+            
+            // Check if there is a saved timer for this mobile number; if so, resume it.
+            const savedTimer = localStorage.getItem(`tlj_timer_${mobile}`);
+            if (savedTimer && !isNaN(parseInt(savedTimer))) {
+                timeLeft = parseInt(savedTimer);
+                // If they reloaded after time was already up (or very close), submit it immediately
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    updateTimerUI();
+                    autoSubmit();
+                    return;
+                }
+            } else {
+                timeLeft = 600; // Reset to 10 mins down only if brand new attempt
+            }
+            updateTimerUI();
             startTimer();
             renderQuestion();
         };
@@ -219,8 +236,11 @@
                 });
                 isSubmitted = true;
                 if(timerInterval) clearInterval(timerInterval);
+                localStorage.removeItem(`tlj_timer_${studentData.mobile}`); // Clear saved timer
                 showScreen('finish-screen');
             } catch (e) {
+                console.error(e);
+                alert("Submit Error: " + (e.message || "Unknown error. Please check your connection."));
                 btn.disabled = false; btn.innerText = "CONFIRM & SUBMIT";
             }
         };
@@ -349,7 +369,7 @@
 <body class="bg-[#f8fafc] min-h-screen p-4 flex flex-col items-center">
 
     <nav class="w-full max-w-2xl flex justify-between items-center mb-8 mt-2">
-        <a href="https://iqkod.github.io/TheLightJuniors/" class="flex items-center gap-2 text-blue-700 font-black text-xs tracking-widest">
+        <a href="https://www.thelightjuniors.com/" class="flex items-center gap-2 text-blue-700 font-black text-xs tracking-widest hover:text-blue-900 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             BACK TO HOME
         </a>
