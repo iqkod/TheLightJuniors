@@ -33,6 +33,7 @@
         let studentData = { name: '', place: '', mobile: '' };
         let studentSelections = Array(10).fill(null);
         let currentQuestion = 0;
+        let hasReachedReview = false;
         let timeLeft = 600; 
         let timerInterval = null;
         let isSubmitted = false;
@@ -144,6 +145,7 @@
             localStorage.setItem('tlj_place', place);
             localStorage.setItem('tlj_mobile', mobile);
             studentData = { name, place, mobile, approved: false };
+            hasReachedReview = false;
             showScreen('quiz-screen');
             startTimer();
             renderQuestion();
@@ -164,8 +166,13 @@
                     btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
                 }
             });
-            document.getElementById('prev-btn').style.visibility = currentQuestion === 0 ? 'hidden' : 'visible';
-            document.getElementById('next-btn').innerText = currentQuestion === 9 ? 'Review Answers' : 'Next';
+            if (hasReachedReview) {
+                document.getElementById('prev-btn').style.visibility = 'hidden';
+                document.getElementById('next-btn').innerText = 'Back to Review';
+            } else {
+                document.getElementById('prev-btn').style.visibility = currentQuestion === 0 ? 'hidden' : 'visible';
+                document.getElementById('next-btn').innerText = currentQuestion === 9 ? 'Review Answers' : 'Next';
+            }
             document.getElementById('progress-bar').style.width = `${(currentQuestion + 1) * 10}%`;
         };
 
@@ -173,18 +180,22 @@
         window.goPrev = () => { if (currentQuestion > 0) { currentQuestion--; renderQuestion(); } };
         window.goNextOrReview = () => {
             if (studentSelections[currentQuestion] === null) return alert("Please select an answer.");
-            if (currentQuestion < 9) { currentQuestion++; renderQuestion(); } else { showReview(); }
+            if (hasReachedReview) { showReview(); }
+            else if (currentQuestion < 9) { currentQuestion++; renderQuestion(); } else { showReview(); }
         };
 
         const showReview = () => {
+            hasReachedReview = true;
             showScreen('review-screen');
             const container = document.getElementById('review-list');
             container.innerHTML = '';
             questions.forEach((q, i) => {
                 const sel = studentSelections[i];
+                const selUpper = sel ? sel.toUpperCase() : '?';
+                const textLabel = sel ? `Option ${selUpper}` : "No answer";
                 const item = document.createElement('div');
                 item.className = "flex flex-col p-5 border-b text-sm bg-white";
-                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1}</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-blue-600 text-white flex items-center justify-center text-[10px]">${sel || '?'}</span><span>${sel ? q[sel] : "No answer"}</span></div>`;
+                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1}</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline hover:text-blue-700 transition-colors">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold text-slate-700">${textLabel}</span></div>`;
                 container.appendChild(item);
             });
         };
