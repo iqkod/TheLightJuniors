@@ -236,6 +236,8 @@
                 if(timerInterval) clearInterval(timerInterval);
                 showScreen('finish-screen');
             } catch (e) {
+                console.error(e);
+                alert("Submit Error: " + (e.message || "Unknown error. Please check your connection."));
                 btn.disabled = false; btn.innerText = "CONFIRM & SUBMIT";
             }
         };
