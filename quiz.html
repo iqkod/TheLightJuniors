@@ -229,6 +229,7 @@
         const showStudentResult = (data) => {
             showScreen('student-result-screen');
             document.getElementById('sr-name').innerText = data.name;
+            document.getElementById('sr-details').innerText = `${data.place} | ${data.mobile}`;
             document.getElementById('sr-score').innerText = `${data.score}/10`;
             
             const list = document.getElementById('sr-answers-list');
@@ -407,6 +408,7 @@
                 <div class="text-center mb-8">
                     <h2 class="text-xs font-black text-blue-600 uppercase tracking-widest mb-2">Quiz Result</h2>
                     <h3 id="sr-name" class="text-2xl font-black text-slate-800 uppercase italic"></h3>
+                    <p id="sr-details" class="text-sm font-bold text-slate-500 mt-1"></p>
                     <div id="sr-score" class="text-5xl font-black text-blue-600 mt-4 mb-2"></div>
                     <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Correct Answers</p>
                 </div>
