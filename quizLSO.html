@@ -86,6 +86,7 @@
                     return;
                 }
                 timeLeft--;
+                localStorage.setItem(`tlj_timer_${studentData.mobile}`, timeLeft.toString());
                 updateTimerUI();
             }, 1000);
         };
@@ -149,6 +150,22 @@
             studentSelections = Array(questions.length).fill().map(() => ([]));
             hasReachedReview = false;
             showScreen('quiz-screen');
+            
+            // Check if there is a saved timer for this mobile number; if so, resume it.
+            const savedTimer = localStorage.getItem(`tlj_timer_${mobile}`);
+            if (savedTimer && !isNaN(parseInt(savedTimer))) {
+                timeLeft = parseInt(savedTimer);
+                // If they reloaded after time was already up (or very close), submit it immediately
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    updateTimerUI();
+                    autoSubmit();
+                    return;
+                }
+            } else {
+                timeLeft = 600; // Reset to 10 mins down only if brand new attempt
+            }
+            updateTimerUI();
             startTimer();
             renderQuestion();
         };
@@ -240,6 +257,7 @@
                 });
                 isSubmitted = true;
                 if(timerInterval) clearInterval(timerInterval);
+                localStorage.removeItem(`tlj_timer_${studentData.mobile}`); // Clear saved timer
                 showScreen('finish-screen');
             } catch (e) {
                 console.error(e);
