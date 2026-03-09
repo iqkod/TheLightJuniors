@@ -229,8 +229,14 @@
                     location.reload();
                     return;
                 }
+                
+                // Firestore does not support arrays containing arrays natively. 
+                // We'll convert each selection array to a comma-separated string, 
+                // e.g., ["a", "d"] becomes "a,d", to easily store it in Firestore.
+                const stringifiedSelections = studentSelections.map(sel => sel.join(','));
+
                 await addDoc(collection(db, "artifacts", appId, "public", "data", "quizLSO_results"), {
-                    ...studentData, score, selections: studentSelections, at: serverTimestamp()
+                    ...studentData, score, selections: stringifiedSelections, at: serverTimestamp()
                 });
                 isSubmitted = true;
                 if(timerInterval) clearInterval(timerInterval);
@@ -252,7 +258,10 @@
             const list = document.getElementById('sr-answers-list');
             list.innerHTML = '';
             questions.forEach((q, i) => {
-                const sel = data.selections[i] || [];
+                // Since we stored it as a comma-separated string, we convert it back
+                const storedSel = data.selections[i] || "";
+                const sel = storedSel.length > 0 ? storedSel.split(',') : [];
+                
                 const correct = Array.isArray(q.correct) ? q.correct : [q.correct];
                 const isCorrect = sel.length === correct.length && correct.every(c => sel.includes(c));
                 
@@ -361,7 +370,8 @@
                 const numQ = res.selections ? Math.max(res.selections.length, questions.length) : questions.length;
                 for(let i=0; i<numQ; i++) {
                     const sel = res.selections ? res.selections[i] : null;
-                    row[`Q${i+1}`] = Array.isArray(sel) ? sel.join(', ') : (sel || 'N/A');
+                    // Because it's stored as "a,d" we can just render it. If it was empty, handle gracefully.
+                    row[`Q${i+1}`] = sel ? sel : 'N/A';
                 }
                 return row;
             });
