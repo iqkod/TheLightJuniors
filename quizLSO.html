@@ -11,7 +11,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, writeBatch, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -126,6 +126,22 @@
             submitBtn.disabled = true;
 
             try {
+                // Check Global Exam Status
+                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
+                if (configSnap.exists()) {
+                    if (configSnap.data().examStatus !== "open") {
+                        alert("The exam is currently closed.");
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
+                        return;
+                    }
+                } else {
+                    alert("Exam configuration not found. Please contact admin.");
+                    submitBtn.innerText = originalText;
+                    submitBtn.disabled = false;
+                    return;
+                }
+
                 const existing = await getExistingSubmission(mobile);
                 if(existing) {
                     if (existing.approved) {
@@ -233,13 +249,25 @@
             if (isSubmitted) return;
             const btn = document.getElementById('final-submit-btn');
             btn.disabled = true; btn.innerText = "Saving...";
-            const score = studentSelections.filter((sel, i) => {
-                const correct = questions[i].correct;
-                const correctArr = Array.isArray(correct) ? correct : [correct];
-                if (sel.length !== correctArr.length) return false;
-                return correctArr.every(c => sel.includes(c));
-            }).length;
+
             try {
+                // Check Global Exam Status Before Submission
+                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
+                if (configSnap.exists()) {
+                    if (configSnap.data().examStatus !== "open") {
+                        alert("The exam has been closed by the admin. Submissions are no longer accepted.");
+                        btn.disabled = false; btn.innerText = "CONFIRM & SUBMIT";
+                        return;
+                    }
+                }
+
+                const score = studentSelections.filter((sel, i) => {
+                    const correct = questions[i].correct;
+                    const correctArr = Array.isArray(correct) ? correct : [correct];
+                    if (sel.length !== correctArr.length) return false;
+                    return correctArr.every(c => sel.includes(c));
+                }).length;
+
                 const existing = await getExistingSubmission(studentData.mobile);
                 if(existing) {
                     alert("A submission for this number already exists.");
@@ -310,8 +338,53 @@
         // ADMIN FUNCTIONS
         window.openAdmin = () => {
             const pass = prompt("Admin Password:");
-            if(pass === "admin123") { showScreen('admin-panel'); loadResults(); }
+            if(pass === "admin123") { showScreen('admin-panel'); loadResults(); loadExamStatus(); }
             else if(pass !== null) { alert("Wrong password."); }
+        };
+
+        async function loadExamStatus() {
+            try {
+                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
+                if (configSnap.exists()) {
+                    updateExamStatusUI(configSnap.data().examStatus);
+                } else {
+                    // Default to closed if not set
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { examStatus: "closed" });
+                    updateExamStatusUI("closed");
+                }
+            } catch (e) {
+                console.error("Error loading exam status", e);
+            }
+        }
+
+        function updateExamStatusUI(status) {
+            const statusIndicator = document.getElementById('exam-status-indicator');
+            const toggleBtn = document.getElementById('exam-status-toggle');
+            
+            if (status === "open") {
+                statusIndicator.innerText = "OPEN";
+                statusIndicator.className = "bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase";
+                toggleBtn.innerText = "Close Exam";
+                toggleBtn.className = "bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-red-600 transition-colors";
+                toggleBtn.onclick = () => setExamStatus("closed");
+            } else {
+                statusIndicator.innerText = "CLOSED";
+                statusIndicator.className = "bg-red-100 text-red-700 px-3 py-1 rounded-full text-[10px] font-black uppercase";
+                toggleBtn.innerText = "Open Exam";
+                toggleBtn.className = "bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-emerald-600 transition-colors";
+                toggleBtn.onclick = () => setExamStatus("open");
+            }
+        }
+
+        window.setExamStatus = async (status) => {
+            if (!confirm(`Are you sure you want to ${status.toUpperCase()} the exam?`)) return;
+            try {
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { examStatus: status }, { merge: true });
+                updateExamStatusUI(status);
+            } catch (e) {
+                console.error("Failed to update status", e);
+                alert("Failed to update exam status.");
+            }
         };
 
         async function loadResults() {
@@ -479,6 +552,16 @@
 
             <div id="admin-panel" class="hidden">
                 <div class="mb-6 space-y-4">
+                    <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <div>
+                            <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Exam Status</h3>
+                            <div class="flex items-center gap-3">
+                                <span id="exam-status-indicator" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">CLOSED</span>
+                            </div>
+                        </div>
+                        <button id="exam-status-toggle" class="bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition-colors">Open Exam</button>
+                    </div>
+
                     <div class="flex justify-between items-center">
                         <h2 class="font-black text-2xl uppercase italic">Results (<span id="total-count">0</span>)</h2>
                         <div class="flex gap-2">
