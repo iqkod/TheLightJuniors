@@ -126,7 +126,20 @@
             submitBtn.disabled = true;
 
             try {
-                // Check Global Exam Status
+                // Check if the student already submitted
+                const existing = await getExistingSubmission(mobile);
+                if(existing) {
+                    if (existing.approved) {
+                        showStudentResult(existing);
+                    } else {
+                        alert("You have already submitted. Please wait for admin approval to view your results.");
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
+                    }
+                    return;
+                }
+
+                // If not submitted, check Global Exam Status before allowing entry
                 const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
                 if (configSnap.exists()) {
                     if (configSnap.data().examStatus !== "open") {
@@ -139,18 +152,6 @@
                     alert("Exam configuration not found. Please contact admin.");
                     submitBtn.innerText = originalText;
                     submitBtn.disabled = false;
-                    return;
-                }
-
-                const existing = await getExistingSubmission(mobile);
-                if(existing) {
-                    if (existing.approved) {
-                        showStudentResult(existing);
-                    } else {
-                        alert("You have already submitted. Please wait for admin approval to view your results.");
-                        submitBtn.innerText = originalText;
-                        submitBtn.disabled = false;
-                    }
                     return;
                 }
             } catch (e) {
