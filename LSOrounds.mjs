@@ -1,6 +1,6 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, writeBatch, getDoc, setDoc } from "https://www.www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, writeBatch, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -468,7 +468,7 @@
                                     Round ${roundNum} 
                                     <span class="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">Toggle</span>
                                 </span>
-                                <span class="font-black text-emerald-600 text-sm">${roundData.score}/10</span>
+                                <span class="font-black text-emerald-600 text-sm">${roundData.score}/${roundQs.length}</span>
                             </div>
                             ${detailsHtml}
                         </div>`;
@@ -484,15 +484,19 @@
             
             // Calculate total score if all attended are approved
             let total = 0;
+            let totalMax = 0;
             let allApproved = true;
             let anyAttended = false;
             
             [1, 2, 3, 4].forEach(r => {
-                const docR = docData[`round${r}`];
+                const roundKey = `round${r}`;
+                const docR = docData[roundKey];
                 if (docR) {
                     anyAttended = true;
                     if (docR.approved) {
                         total += docR.score;
+                        const roundQs = grandQuestions[roundKey] || [];
+                        totalMax += Math.max(roundQs.length, docR.selections ? docR.selections.length : 10);
                     } else {
                         allApproved = false;
                     }
@@ -501,7 +505,7 @@
 
             const scoreDisplay = document.getElementById('sr-score');
             if (anyAttended && allApproved) {
-                scoreDisplay.innerText = `${total}/40`;
+                scoreDisplay.innerText = `${total}/${totalMax}`;
             } else {
                 scoreDisplay.innerText = "Pending";
             }
