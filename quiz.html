@@ -288,17 +288,18 @@
             }
         };
 
-        // STUDENT RESULT VIEW
         const showStudentResult = (data) => {
             showScreen('student-result-screen');
             document.getElementById('sr-name').innerText = data.name;
             document.getElementById('sr-details').innerText = `${data.place} | ${data.mobile}`;
-            document.getElementById('sr-score').innerText = `${data.score}/${data.selections.length || questions.length}`;
+            document.getElementById('sr-score').innerText = `${data.score}/${questions.length}`;
             
             const list = document.getElementById('sr-answers-list');
             list.innerHTML = '';
+            
+            // Loop based ONLY on the currently active uploaded questions
             questions.forEach((q, i) => {
-                const sel = data.selections[i];
+                const sel = (data.selections && data.selections[i]) ? data.selections[i] : null;
                 const isCorrect = sel === q.correct;
                 const item = document.createElement('div');
                 item.className = `p-4 border rounded-2xl mb-4 ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`;
