@@ -147,12 +147,29 @@
             const mobile = document.getElementById('mobile').value.trim();
             
             if(!name || !place || !mobile) return alert("Please fill all fields.");
-            if(!allowedMobiles.includes(mobile)) return alert("Mobile number not authorized.");
 
             const submitBtn = document.querySelector('#login-screen button');
             const originalText = submitBtn.innerText;
             submitBtn.innerText = "Verifying...";
             submitBtn.disabled = true;
+
+            try {
+                const configSnapAuth = await getDoc(doc(db, "artifacts", appId, "public", "data", "lsorounds_config", "authorized_mobiles"));
+                let validMobiles = allowedMobiles;
+                if (configSnapAuth.exists() && configSnapAuth.data().mobiles && configSnapAuth.data().mobiles.length > 0) {
+                    validMobiles = configSnapAuth.data().mobiles;
+                }
+                if(!validMobiles.includes(mobile)) {
+                    submitBtn.innerText = originalText;
+                    submitBtn.disabled = false;
+                    return alert("Mobile number not authorized. Please contact the administrator.");
+                }
+            } catch(e) {
+                console.error("Auth check failed", e);
+                submitBtn.innerText = originalText;
+                submitBtn.disabled = false;
+                return alert("Network error verifying mobile. Please try again.");
+            }
 
             let dbDuration = 600;
 
@@ -584,6 +601,58 @@
                 console.error(err);
                 alert("Failed to save duration!");
             }
+        };
+
+        window.downloadMobileTemplate = () => {
+            const wsData = [
+                ["Mobile Number"],
+                ["966-501797382"],
+                ["91-7356160643"]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Authorized Numbers");
+            XLSX.writeFile(wb, "TLJ_Authorized_Mobiles_Template.xlsx");
+        };
+
+        window.uploadMobiles = async () => {
+            const fileInput = document.getElementById('mobile-upload');
+            if (!fileInput.files.length) return alert("Please select an Excel file.");
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                let newMobiles = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const mobile = rows[i][0];
+                    if (mobile) newMobiles.push(String(mobile).trim());
+                }
+                
+                if (newMobiles.length === 0) return alert("No valid mobile numbers found.");
+                if (!confirm(`Are you sure you want to authorize ${newMobiles.length} numbers? This will replace the current authorized list.`)) return;
+
+                const uploadBtn = document.getElementById('upload-mobiles-btn');
+                uploadBtn.innerText = "Uploading...";
+                
+                try {
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "lsorounds_config", "authorized_mobiles"), { mobiles: newMobiles });
+                    alert(`Successfully updated authorized list with ${newMobiles.length} numbers!`);
+                    fileInput.value = "";
+                } catch (err) {
+                    console.error(err);
+                    alert("Failed to save authorized numbers!");
+                } finally {
+                    uploadBtn.innerText = "UPLOAD";
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
         };
 
         window.downloadQuestionTemplate = () => {
