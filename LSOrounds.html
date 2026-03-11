@@ -739,7 +739,7 @@
             reader.readAsArrayBuffer(file);
         };
 
-        async function loadResults() {
+        window.loadResults = async function() {
             const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "lsorounds_results"), orderBy("mobile")));
             const tbody = document.getElementById('results-body');
             tbody.innerHTML = '';

@@ -293,7 +293,7 @@
             if(pass === "admin123") { showScreen('admin-panel'); loadResults(); }
         };
 
-        async function loadResults() {
+        window.loadResults = async function() {
             const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "quiz_results"), orderBy("at", "desc")));
             const tbody = document.getElementById('results-body');
             tbody.innerHTML = '';
