@@ -867,7 +867,7 @@
             }
             
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "lsorounds_config", adminEditingRound), { questions: newQ });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "lsorounds_config", adminEditingRound), { questions: newQ, admin_secret: "LSO2026@siicNC" });
                 grandQuestions[adminEditingRound] = newQ; // update local
                 alert("Questions saved successfully.");
                 closeAdminEditor();
@@ -936,6 +936,7 @@
                         updatePayload[`${r}.approved`] = true;
                     }
                 });
+                updatePayload.admin_secret = "LSO2026@siicNC";
                 await updateDoc(docRef, updatePayload);
                 loadResults(); 
             }
@@ -960,6 +961,7 @@
                     }
                 });
                 if (needsUpdate) {
+                    updatePayload.admin_secret = "LSO2026@siicNC";
                     batch.update(d.ref, updatePayload);
                 }
             });
