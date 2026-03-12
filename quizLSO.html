@@ -125,6 +125,10 @@
             submitBtn.disabled = true;
 
             try {
+                // Ensure anonymous login BEFORE doing any Firebase reads to avoid Permission Denied errors
+                const auth = getAuth();
+                await signInAnonymously(auth);
+
                 const configSnapSettings = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
                 let allowAny = false;
                 if (configSnapSettings.exists() && configSnapSettings.data().allowAnyMobile) {
@@ -451,6 +455,58 @@
             }
         };
 
+        window.downloadMobileTemplate = () => {
+            const wsData = [
+                ["Mobile Number"],
+                ["966-501797382"],
+                ["91-7356160643"]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Authorized Numbers");
+            XLSX.writeFile(wb, "TLJ_Authorized_Mobiles_Template.xlsx");
+        };
+
+        window.uploadMobiles = async () => {
+            const fileInput = document.getElementById('mobile-upload');
+            if (!fileInput.files.length) return alert("Please select an Excel file.");
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                let newMobiles = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const mobile = rows[i][0];
+                    if (mobile) newMobiles.push(String(mobile).trim());
+                }
+                
+                if (newMobiles.length === 0) return alert("No valid mobile numbers found.");
+                if (!confirm(`Are you sure you want to authorize ${newMobiles.length} numbers? This will replace the current authorized list.`)) return;
+
+                const uploadBtn = document.getElementById('upload-mobiles-btn');
+                uploadBtn.innerText = "Uploading...";
+                
+                try {
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"), { mobiles: newMobiles });
+                    alert(`Successfully updated authorized list with ${newMobiles.length} numbers!`);
+                    fileInput.value = "";
+                } catch (err) {
+                    console.error(err);
+                    alert("Failed to save authorized numbers!");
+                } finally {
+                    uploadBtn.innerText = "UPLOAD";
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        };
+
         window.downloadQuestionTemplate = () => {
             const wsData = [
                 ["No", "Question", "Option A", "Option B", "Option C", "Option D", "Correct Answers (comma separated)"],
@@ -595,6 +651,10 @@
                             <label class="text-[10px] font-bold text-slate-500">Answers (Comma separated: a,b,c,d)</label>
                             <input type="text" id="edit-correct-${i}" value="${correctStr}" class="w-full p-1.5 border border-emerald-300 rounded text-xs font-mono uppercase bg-emerald-50 text-emerald-700">
                         </div>
+                        <div class="w-16">
+                            <label class="text-[10px] font-bold text-slate-500">Marks</label>
+                            <input type="number" id="edit-marks-${i}" value="${q.marks || 1}" class="w-full p-1.5 border border-blue-300 rounded text-xs font-bold text-center bg-blue-50 text-blue-700">
+                        </div>
                     </div>
                 </div>`;
             });
@@ -608,7 +668,7 @@
         };
 
         window.addAdminQuestion = () => {
-            adminEditingQuestions.push({ q: "", a: "", b: "", c: "", d: "", correct: ["a"] });
+            adminEditingQuestions.push({ q: "", a: "", b: "", c: "", d: "", correct: ["a"], marks: 1 });
             renderAdminEditor();
             const container = document.getElementById('admin-editor-list');
             setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
@@ -627,6 +687,7 @@
                 const cText = document.getElementById(`edit-c-${i}`).value.trim();
                 const dText = document.getElementById(`edit-d-${i}`).value.trim();
                 const correctRaw = document.getElementById(`edit-correct-${i}`).value.toLowerCase();
+                const marksRaw = document.getElementById(`edit-marks-${i}`).value;
                 
                 let correctArr = correctRaw.split(',').map(s => s.trim()).filter(s => ['a','b','c','d'].includes(s));
                 if (correctArr.length === 0) {
@@ -636,7 +697,11 @@
                     return;
                 }
                 
-                newQ.push({ q: qText, a: aText, b: bText, c: cText, d: dText, correct: correctArr });
+                let marks = 1;
+                let parsedMark = Number(marksRaw);
+                if (!isNaN(parsedMark) && parsedMark > 0) marks = parsedMark;
+
+                newQ.push({ q: qText, a: aText, b: bText, c: cText, d: dText, correct: correctArr, marks: marks });
             }
             
             try {
