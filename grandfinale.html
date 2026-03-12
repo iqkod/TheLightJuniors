@@ -27,6 +27,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         const appId = "thelightjuniors";
+        const ADMIN_SECRET = "LSO2026@siicNC"; // Shared secret for rules
 
         // State Management
         let user = null;
@@ -434,7 +435,7 @@
                     }
                 } else {
                     // Default to closed if not set
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { examStatus: "closed", allowAnyMobile: false, admin_secret: "LSO2026@siicNC" });
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { examStatus: "closed", allowAnyMobile: false, admin_secret: ADMIN_SECRET });
                     updateExamStatusUI("closed");
                     updateAllowAnyUI(false);
                 }
@@ -463,7 +464,7 @@
             const newStatus = btn.dataset.status !== "on";
             if (!confirm(`Are you sure you want to ${newStatus ? 'ALLOW ANY MOBILE NUMBER' : 'RESTRICT TO AUTHORIZED NUMBERS'}?`)) return;
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { allowAnyMobile: newStatus, admin_secret: "LSO2026@siicNC" }, { merge: true });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { allowAnyMobile: newStatus, admin_secret: ADMIN_SECRET }, { merge: true });
                 updateAllowAnyUI(newStatus);
             } catch(e) {
                 console.error("Failed to update allow any status", e);
@@ -477,7 +478,7 @@
             if (isNaN(min) || min < 1) return alert("Please enter a valid time in minutes.");
             
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { durationMinutes: min, admin_secret: "LSO2026@siicNC" }, { merge: true });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { durationMinutes: min, admin_secret: ADMIN_SECRET }, { merge: true });
                 alert(`Duration saved as ${min} minutes.`);
             } catch (err) {
                 console.error(err);
@@ -523,7 +524,7 @@
                 uploadBtn.innerText = "Uploading...";
                 
                 try {
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"), { mobiles: newMobiles, admin_secret: "LSO2026@siicNC" });
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"), { mobiles: newMobiles, admin_secret: ADMIN_SECRET });
                     alert(`Successfully updated authorized list with ${newMobiles.length} numbers!`);
                     fileInput.value = "";
                 } catch (err) {
@@ -605,7 +606,7 @@
                 uploadBtn.innerText = "Uploading...";
                 
                 try {
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"), { questions: newQuestions, admin_secret: "LSO2026@siicNC" });
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"), { questions: newQuestions, admin_secret: ADMIN_SECRET });
                     alert(`Successfully updated with ${newQuestions.length} questions!`);
                     fileInput.value = "";
                 } catch (err) {
@@ -641,7 +642,7 @@
         window.setExamStatus = async (status) => {
             if (!confirm(`Are you sure you want to ${status.toUpperCase()} the exam?`)) return;
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { examStatus: status, admin_secret: "LSO2026@siicNC" }, { merge: true });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { examStatus: status, admin_secret: ADMIN_SECRET }, { merge: true });
                 updateExamStatusUI(status);
             } catch (e) {
                 console.error("Failed to update status", e);
@@ -747,7 +748,7 @@
             }
             
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"), { questions: newQ, admin_secret: "LSO2026@siicNC" });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"), { questions: newQ, admin_secret: ADMIN_SECRET });
                 questions = newQ; // update local
                 alert("Questions saved successfully.");
                 closeAdminEditor();
@@ -795,7 +796,7 @@
         window.approveResult = async (id) => {
             try {
                 const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", id);
-                await updateDoc(ref, { approved: true, admin_secret: "LSO2026@siicNC" });
+                await updateDoc(ref, { approved: true, admin_secret: ADMIN_SECRET });
                 loadResults();
             } catch (e) {
                 alert("Failed to approve.");
@@ -810,7 +811,7 @@
             allResultsData.forEach(res => {
                 if(!res.approved) {
                     const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", res.id);
-                    batch.update(ref, { approved: true, admin_secret: "LSO2026@siicNC" });
+                    batch.update(ref, { approved: true, admin_secret: ADMIN_SECRET });
                 }
             });
             await batch.commit();
