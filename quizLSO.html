@@ -567,9 +567,12 @@
                 let newQuestions = [];
                 for (let i = 1; i < rows.length; i++) {
                     const r = rows[i];
-                    if (!r[1]) continue;
                     
-                    let correctRaw = r[6] ? String(r[6]).toLowerCase() : "";
+                    // Skip empty rows or rows that might just be calculating a 'sum' at the bottom
+                    if (!r[1] || String(r[1]).trim() === "") continue;
+                    if (!r[6] || String(r[6]).trim() === "") continue;
+                    
+                    let correctRaw = String(r[6]).toLowerCase();
                     let correctArr = correctRaw.split(',').map(s => s.trim()).filter(s => ['a','b','c','d'].includes(s));
                     
                     if (correctArr.length === 0) {
@@ -911,7 +914,7 @@
                     <h3 id="sr-name" class="text-2xl font-black text-slate-800 uppercase italic"></h3>
                     <p id="sr-details" class="text-sm font-bold text-slate-500 mt-1"></p>
                     <div id="sr-score" class="text-5xl font-black text-blue-600 mt-4 mb-2"></div>
-                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Correct Answers</p>
+                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">TOTAL SCORE</p>
                 </div>
                 <div id="sr-answers-list" class="mb-10 max-h-[450px] overflow-y-auto pr-2"></div>
                 <button onclick="location.reload()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-xs uppercase tracking-widest">Close Results</button>
