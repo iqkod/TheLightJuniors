@@ -361,9 +361,14 @@
             const list = document.getElementById('sr-answers-list');
             list.innerHTML = '';
             
-            // Loop based ONLY on the currently active uploaded questions
-            questions.forEach((q, i) => {
-                // Since we stored it as a comma-separated string, we convert it back
+            // Loop based on how many selections were saved, up to the number of currently active uploaded questions
+            // This prevents errors if questions were deleted after the quiz was taken
+            const limit = data.selections ? data.selections.length : questions.length;
+            
+            for(let i = 0; i < limit; i++) {
+                const q = questions[i];
+                if (!q) continue; // If there are fewer live questions than selections
+
                 const storedSel = (data.selections && data.selections[i]) ? data.selections[i] : "";
                 const sel = storedSel.length > 0 ? storedSel.split(',') : [];
                 
@@ -399,7 +404,7 @@
                     </div>
                 `;
                 list.appendChild(item);
-            });
+            }
         };
 
         // ADMIN FUNCTIONS
