@@ -164,6 +164,14 @@
             let dbDuration = 600;
 
             try {
+                // Fetch the live questions before checking existing submissions so the results screen renders correctly
+                try {
+                    const qSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"));
+                    if (qSnap.exists() && qSnap.data().questions && qSnap.data().questions.length > 0) {
+                        questions = qSnap.data().questions;
+                    }
+                } catch(e) { console.error("Could not load custom questions.", e); }
+
                 // Check if the student already submitted
                 const existing = await getExistingSubmission(mobile);
                 if(existing) {
@@ -195,14 +203,6 @@
                     submitBtn.disabled = false;
                     return;
                 }
-
-                try {
-                    const qSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"));
-                    if (qSnap.exists() && qSnap.data().questions && qSnap.data().questions.length > 0) {
-                        questions = qSnap.data().questions;
-                    }
-                } catch(e) { console.error("Could not load custom questions.", e); }
-                
             } catch (e) {
                 submitBtn.innerText = originalText;
                 submitBtn.disabled = false;
