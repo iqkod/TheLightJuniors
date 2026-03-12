@@ -335,7 +335,7 @@
         };
         const renderQuestion = () => {
             const q = questions[currentQuestion];
-            document.getElementById('q-title').innerText = `Question ${currentQuestion + 1} of ${questions.length}`;
+            document.getElementById('q-title').innerText = `Question ${currentQuestion + 1} of ${questions.length} - ${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}`;
             document.getElementById('q-text').innerText = q.q;
             ['a','b','c','d'].forEach(l => {
                 const btn = document.getElementById('btn-opt-' + l);
@@ -385,7 +385,7 @@
                 const textLabel = sel.length ? [...sel].sort().map(s => q[s]).join(', ') : "No answer";
                 const item = document.createElement('div');
                 item.className = "flex flex-col p-5 border-b text-sm bg-white";
-                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1}</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline hover:text-blue-700 transition-colors">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="px-2 py-1 min-w-[24px] rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold text-slate-700">${textLabel}</span></div>`;
+                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1} (${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''})</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline hover:text-blue-700 transition-colors">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="px-2 py-1 min-w-[24px] rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold text-slate-700">${textLabel}</span></div>`;
                 container.appendChild(item);
             });
         };
@@ -413,14 +413,17 @@
                     }
                 }
 
-                const score = studentSelections.filter((s, i) => {
-                    if (!questions[i]) return false;
+                const score = studentSelections.reduce((acc, s, i) => {
+                    if (!questions[i]) return acc;
                     const correctArr = Array.isArray(questions[i].correct) ? questions[i].correct : [questions[i].correct];
-                    if (!s || !Array.isArray(s) || s.length !== correctArr.length) return false;
+                    if (!s || !Array.isArray(s) || s.length !== correctArr.length) return acc;
                     const sortedS = [...s].sort();
                     const sortedC = [...correctArr].sort();
-                    return sortedS.every((val, index) => val === sortedC[index]);
-                }).length;
+                    if (sortedS.every((val, index) => val === sortedC[index])) {
+                        return acc + (Number(questions[i].marks) || 1);
+                    }
+                    return acc;
+                }, 0);
                 
                 const convertedSelections = studentSelections.map(s => Array.isArray(s) ? s.join(',') : s);
                 const roundPayload = { score, selections: convertedSelections, approved: false, at: serverTimestamp() };
@@ -455,6 +458,7 @@
                         </div>`;
                     } else if (roundData.approved) {
                         const roundQs = grandQuestions[roundKey];
+                        const roundMaxScore = roundQs.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
                         const detailsHtml = `
                         <div class="mt-4 hidden space-y-3" id="details-${roundKey}">
                             ${roundQs.map((q, i) => {
@@ -479,7 +483,7 @@
 
                                 return `
                                 <div class="p-4 rounded-xl border ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'} text-left text-sm mb-2">
-                                    <p class="font-bold text-slate-800 text-xs">${i+1}. ${q.q}</p>
+                                    <p class="font-bold text-slate-800 text-xs">${i+1}. ${q.q} <span class="text-slate-500 font-normal">(${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''})</span></p>
                                     <p class="text-[11px] mt-2 ${isCorrect ? 'text-emerald-700' : 'text-red-700'} font-semibold">
                                         Your Answer: ${optLetter}. ${optText}
                                         ${isCorrect ? ' <span class="font-bold">✓</span>' : ' <span class="font-bold">✗</span>'}
@@ -496,7 +500,7 @@
                                     Round ${roundNum} 
                                     <span class="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">Toggle</span>
                                 </span>
-                                <span class="font-black text-emerald-600 text-sm">${roundData.score}/${roundQs.length}</span>
+                                <span class="font-black text-emerald-600 text-sm">${roundData.score}/${roundMaxScore}</span>
                             </div>
                             ${detailsHtml}
                         </div>`;
@@ -524,7 +528,8 @@
                     if (docR.approved) {
                         total += docR.score;
                         const roundQs = grandQuestions[roundKey] || [];
-                        totalMax += Math.max(roundQs.length, docR.selections ? docR.selections.length : 10);
+                        const roundMaxScore = roundQs.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
+                        totalMax += Math.max(roundMaxScore, docR.selections ? docR.selections.length : 10);
                     } else {
                         allApproved = false;
                     }
@@ -668,9 +673,9 @@
 
         window.downloadQuestionTemplate = () => {
             const wsData = [
-                ["No", "Question", "Option A", "Option B", "Option C", "Option D", "Correct Answers (comma separated)"],
-                [1, "Sample Question 1?", "A", "B", "C", "D", "a, b"],
-                [2, "Sample Question 2?", "Apple", "Car", "Banana", "Bus", "a, c"]
+                ["No", "Question", "Option A", "Option B", "Option C", "Option D", "Correct Answers (comma separated)", "Marks (Optional)"],
+                [1, "Sample Question 1?", "A", "B", "C", "D", "a, b", 2],
+                [2, "Sample Question 2?", "Apple", "Car", "Banana", "Bus", "a, c", 1]
             ];
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             const wb = XLSX.utils.book_new();
@@ -708,13 +713,22 @@
                         return alert(`Error: Question ${i} does not have valid correct answers (must be comma separated letters: a, b, c, or d).`);
                     }
 
+                    let marks = 1;
+                    if (r[7] !== undefined && r[7] !== null && String(r[7]).trim() !== "") {
+                        let parsedMark = Number(r[7]);
+                        if (!isNaN(parsedMark) && parsedMark > 0) {
+                            marks = parsedMark;
+                        }
+                    }
+
                     newQuestions.push({
                         q: String(r[1] || ""),
                         a: String(r[2] || ""),
                         b: String(r[3] || ""),
                         c: String(r[4] || ""),
                         d: String(r[5] || ""),
-                        correct: correctArr
+                        correct: correctArr,
+                        marks: marks
                     });
                 }
                 
