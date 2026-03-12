@@ -272,7 +272,6 @@
         };
         window.goPrev = () => { if (currentQuestion > 0) { currentQuestion--; renderQuestion(); } };
         window.goNextOrReview = () => {
-            if (studentSelections[currentQuestion].length === 0) return alert("Please select an answer.");
             if (hasReachedReview) { showReview(); }
             else if (currentQuestion < questions.length - 1) { currentQuestion++; renderQuestion(); } else { showReview(); }
         };
