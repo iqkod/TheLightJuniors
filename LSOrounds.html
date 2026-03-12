@@ -749,8 +749,130 @@
                     uploadBtn.innerText = "UPLOAD";
                 }
             };
-            
             reader.readAsArrayBuffer(file);
+        };
+        
+        // ADMIN QUESTION EDITOR
+        let adminEditingRound = 'round1';
+        let adminEditingQuestions = [];
+
+        window.openQuestionEditor = async (round) => {
+            adminEditingRound = round;
+            adminEditingQuestions = [...(grandQuestions[round] || [])];
+            
+            try {
+                const qSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "lsorounds_config", round));
+                if (qSnap.exists() && qSnap.data().questions) {
+                    adminEditingQuestions = qSnap.data().questions;
+                }
+            } catch(e) {
+                console.error("Failed fetching for editor", e);
+            }
+            
+            renderAdminEditor();
+            showScreen('admin-editor-screen');
+        };
+
+        window.renderAdminEditor = () => {
+            document.getElementById('editor-round-title').innerText = adminEditingRound.toUpperCase();
+            const container = document.getElementById('admin-editor-list');
+            container.innerHTML = '';
+            
+            adminEditingQuestions.forEach((q, i) => {
+                const marks = q.marks || 1;
+                const correctStr = Array.isArray(q.correct) ? q.correct.join(', ') : q.correct;
+                
+                container.innerHTML += `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-black text-blue-600 text-xs">Question ${i+1}</span>
+                        <button onclick="deleteAdminQuestion(${i})" class="text-red-500 font-bold text-[10px] hover:underline">DELETE</button>
+                    </div>
+                    <textarea id="edit-q-${i}" class="w-full p-2 border border-slate-200 rounded mb-2 text-sm font-bold resize-none h-16" placeholder="Question Text">${q.q}</textarea>
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div><label class="text-[10px] font-bold text-slate-500">Option A</label><input type="text" id="edit-a-${i}" value="${q.a}" class="w-full p-1.5 border rounded text-xs"></div>
+                        <div><label class="text-[10px] font-bold text-slate-500">Option B</label><input type="text" id="edit-b-${i}" value="${q.b}" class="w-full p-1.5 border rounded text-xs"></div>
+                        <div><label class="text-[10px] font-bold text-slate-500">Option C</label><input type="text" id="edit-c-${i}" value="${q.c}" class="w-full p-1.5 border rounded text-xs"></div>
+                        <div><label class="text-[10px] font-bold text-slate-500">Option D</label><input type="text" id="edit-d-${i}" value="${q.d}" class="w-full p-1.5 border rounded text-xs"></div>
+                    </div>
+                    
+                    <div class="flex gap-4 items-center">
+                        <div class="flex-1">
+                            <label class="text-[10px] font-bold text-slate-500">Answers (Comma separated: a,b,c,d)</label>
+                            <input type="text" id="edit-correct-${i}" value="${correctStr}" class="w-full p-1.5 border border-emerald-300 rounded text-xs font-mono uppercase bg-emerald-50 text-emerald-700">
+                        </div>
+                        <div class="w-16">
+                            <label class="text-[10px] font-bold text-slate-500">Marks</label>
+                            <input type="number" id="edit-marks-${i}" value="${marks}" class="w-full p-1.5 border border-blue-300 rounded text-xs font-bold text-center bg-blue-50 text-blue-700">
+                        </div>
+                    </div>
+                </div>`;
+            });
+        };
+
+        window.deleteAdminQuestion = (i) => {
+            if(confirm("Delete this question?")) {
+                adminEditingQuestions.splice(i, 1);
+                renderAdminEditor();
+            }
+        };
+
+        window.addAdminQuestion = () => {
+            adminEditingQuestions.push({ q: "", a: "", b: "", c: "", d: "", correct: ["a"], marks: 1 });
+            renderAdminEditor();
+            // scroll to bottom
+            const container = document.getElementById('admin-editor-list');
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
+        };
+
+        window.saveAdminQuestions = async () => {
+            const btn = document.getElementById('save-editor-btn');
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+            
+            // Gather
+            let newQ = [];
+            for (let i = 0; i < adminEditingQuestions.length; i++) {
+                const qText = document.getElementById(`edit-q-${i}`).value.trim();
+                const aText = document.getElementById(`edit-a-${i}`).value.trim();
+                const bText = document.getElementById(`edit-b-${i}`).value.trim();
+                const cText = document.getElementById(`edit-c-${i}`).value.trim();
+                const dText = document.getElementById(`edit-d-${i}`).value.trim();
+                const correctRaw = document.getElementById(`edit-correct-${i}`).value.toLowerCase();
+                const marksRaw = document.getElementById(`edit-marks-${i}`).value;
+                
+                let correctArr = correctRaw.split(',').map(s => s.trim()).filter(s => ['a','b','c','d'].includes(s));
+                if (correctArr.length === 0) {
+                    alert(`Question ${i+1} has invalid correct answers. Please use a, b, c, or d.`);
+                    btn.disabled = false;
+                    btn.innerText = "Save Changes";
+                    return;
+                }
+                
+                let marks = 1;
+                let parsedMark = Number(marksRaw);
+                if (!isNaN(parsedMark) && parsedMark > 0) marks = parsedMark;
+
+                newQ.push({ q: qText, a: aText, b: bText, c: cText, d: dText, correct: correctArr, marks });
+            }
+            
+            try {
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "lsorounds_config", adminEditingRound), { questions: newQ });
+                grandQuestions[adminEditingRound] = newQ; // update local
+                alert("Questions saved successfully.");
+                closeAdminEditor();
+            } catch(e) {
+                console.error(e);
+                alert("Failed to save changes.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Save Changes";
+            }
+        };
+
+        window.closeAdminEditor = () => {
+            showScreen('admin-panel');
         };
 
         window.loadResults = async function() {
