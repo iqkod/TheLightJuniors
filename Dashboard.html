@@ -379,11 +379,23 @@
             <div id="dashboard-screen" class="hidden space-y-8">
                 <div class="text-center">
                     <h2 id="dash-name" class="text-2xl font-black text-slate-800 uppercase italic mb-2"></h2>
-                    <p id="quiz-status-msg" class="text-sm text-slate-400 font-bold"></p>
+                    <p class="text-sm text-slate-400 font-bold">Welcome to your dashboard.</p>
                 </div>
                 
+                <!-- Grand Finale Link banner -->
+                <a href="grandfinale.html" class="block bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-[2rem] shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all border border-red-500 relative overflow-hidden group">
+                    <div class="relative z-10 flex flex-col items-center text-center space-y-2">
+                        <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                        </div>
+                        <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-red-100">Live Now</h3>
+                        <h2 class="text-2xl sm:text-3xl font-black italic tracking-tight">ENTER GRAND FINALE</h2>
+                    </div>
+                </a>
+
                 <div class="bg-blue-50/50 p-6 rounded-[2rem] border border-blue-100">
-                    <h3 class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Latest Action</h3>
+                    <h3 class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Daily Quizzes</h3>
+                    <p id="quiz-status-msg" class="text-sm text-slate-500 font-bold mb-4"></p>
                     <button id="start-quiz-btn" onclick="startQuiz()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md">Start Current Exam</button>
                 </div>
 
