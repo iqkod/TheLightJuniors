@@ -238,7 +238,7 @@
 
         const renderQuestion = () => {
             const q = questions[currentQuestion];
-            document.getElementById('q-title').innerText = `Question ${currentQuestion + 1} of ${questions.length}`;
+            document.getElementById('q-title').innerText = `Question ${currentQuestion + 1} of ${questions.length} - ${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}`;
             document.getElementById('q-text').innerText = q.q;
             ['a','b','c','d'].forEach(l => {
                 const btn = document.getElementById('btn-opt-' + l);
@@ -288,7 +288,7 @@
                 const textLabel = sel.length ? sel.map(s => q[s]).join(', ') : "No answer";
                 const item = document.createElement('div');
                 item.className = "flex flex-col p-5 border-b text-sm bg-white";
-                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1}</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline hover:text-blue-700 transition-colors">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="px-2 py-1 min-w-[24px] rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold text-slate-700">${textLabel}</span></div>`;
+                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1} (${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''})</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline hover:text-blue-700 transition-colors">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="px-2 py-1 min-w-[24px] rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold text-slate-700">${textLabel}</span></div>`;
                 container.appendChild(item);
             });
         };
@@ -311,12 +311,19 @@
                     }
                 }
 
-                const score = studentSelections.filter((sel, i) => {
+                const score = studentSelections.reduce((acc, sel, i) => {
+                    if (!questions[i]) return acc;
                     const correct = questions[i].correct;
                     const correctArr = Array.isArray(correct) ? correct : [correct];
-                    if (sel.length !== correctArr.length) return false;
-                    return correctArr.every(c => sel.includes(c));
-                }).length;
+                    if (!sel || !Array.isArray(sel) || sel.length !== correctArr.length) return acc;
+                    
+                    const sortedS = [...sel].sort();
+                    const sortedC = [...correctArr].sort();
+                    if (sortedS.every((val, index) => val === sortedC[index])) {
+                        return acc + (Number(questions[i].marks) || 1);
+                    }
+                    return acc;
+                }, 0);
 
                 const existing = await getExistingSubmission(studentData.mobile);
                 if(existing) {
@@ -329,9 +336,10 @@
                 // We'll convert each selection array to a comma-separated string, 
                 // e.g., ["a", "d"] becomes "a,d", to easily store it in Firestore.
                 const stringifiedSelections = studentSelections.map(sel => sel.join(','));
+                const maxScore = questions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
 
                 await addDoc(collection(db, "artifacts", appId, "public", "data", "quizLSO_results"), {
-                    ...studentData, score, selections: stringifiedSelections, at: serverTimestamp()
+                    ...studentData, score, maxScore, selections: stringifiedSelections, at: serverTimestamp()
                 });
                 isSubmitted = true;
                 if(timerInterval) clearInterval(timerInterval);
@@ -348,7 +356,8 @@
             showScreen('student-result-screen');
             document.getElementById('sr-name').innerText = data.name;
             document.getElementById('sr-details').innerText = `${data.place} | ${data.mobile}`;
-            document.getElementById('sr-score').innerText = `${data.score}/${questions.length}`;
+            const maxScore = questions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
+            document.getElementById('sr-score').innerText = `${data.score}/${maxScore}`;
             
             const list = document.getElementById('sr-answers-list');
             list.innerHTML = '';
@@ -368,7 +377,7 @@
                 const item = document.createElement('div');
                 item.className = `p-4 border rounded-2xl mb-4 ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`;
                 item.innerHTML = `
-                    <p class="text-[10px] font-black uppercase mb-1 ${isCorrect ? 'text-emerald-600' : 'text-red-600'}">Question ${i+1}</p>
+                    <p class="text-[10px] font-black uppercase mb-1 ${isCorrect ? 'text-emerald-600' : 'text-red-600'}">Question ${i+1} <span class="text-slate-400 font-bold">(${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''})</span></p>
                     <p class="font-bold text-slate-800 text-sm mb-3">${q.q}</p>
                     <div class="space-y-2">
                         <div class="flex items-center gap-2 text-xs">
@@ -546,13 +555,22 @@
                         return alert(`Error: Question ${i} does not have a valid correct answer.`);
                     }
 
+                    let marks = 1;
+                    if (r[7] !== undefined && r[7] !== null && String(r[7]).trim() !== "") {
+                        let parsedMark = Number(r[7]);
+                        if (!isNaN(parsedMark) && parsedMark > 0) {
+                            marks = parsedMark;
+                        }
+                    }
+
                     newQuestions.push({
                         q: String(r[1] || ""),
                         a: String(r[2] || ""),
                         b: String(r[3] || ""),
                         c: String(r[4] || ""),
                         d: String(r[5] || ""),
-                        correct: correctArr.length === 1 ? correctArr[0] : correctArr
+                        correct: correctArr.length === 1 ? correctArr[0] : correctArr,
+                        marks: marks
                     });
                 }
                 
@@ -735,7 +753,7 @@
                         <td class="p-3 font-bold">${d.name}</td>
                         <td class="p-3">${d.place}</td>
                         <td class="p-3 font-mono">${d.mobile}</td>
-                        <td class="p-3 text-center font-black">${d.score}/${d.selections ? d.selections.length : questions.length}</td>
+                        <td class="p-3 text-center font-black">${d.score}/${d.maxScore || (d.selections ? d.selections.length : questions.length)}</td>
                         <td class="p-3">
                             <span class="px-2 py-0.5 rounded-full text-[9px] font-black ${d.approved ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'} uppercase">
                                 ${d.approved ? 'Live' : 'Hidden'}
