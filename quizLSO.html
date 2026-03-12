@@ -825,6 +825,57 @@
             }
         };
 
+        window.deleteAllResults = async () => {
+            if(allResultsData.length === 0) return alert("No results to delete.");
+            
+            const firstConfirm = confirm("Are you ABSOLUTELY SURE you want to delete ALL student results?");
+            if (!firstConfirm) return;
+            
+            const secondConfirm = prompt("This action CANNOT BE UNDONE. Type 'DELETE' to confirm:");
+            if (secondConfirm !== 'DELETE') {
+                alert("Bulk deletion cancelled.");
+                return;
+            }
+
+            const btn = document.getElementById('delete-all-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Deleting...";
+            btn.disabled = true;
+
+            try {
+                // Firestore batch limit is 500. For small quizzes, one batch is usually enough.
+                const batches = [];
+                let currentBatch = writeBatch(db);
+                let count = 0;
+
+                allResultsData.forEach((res) => {
+                    const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", res.id);
+                    currentBatch.delete(ref);
+                    count++;
+                    
+                    if (count === 490) {
+                        batches.push(currentBatch.commit());
+                        currentBatch = writeBatch(db);
+                        count = 0;
+                    }
+                });
+                
+                if (count > 0) {
+                    batches.push(currentBatch.commit());
+                }
+
+                await Promise.all(batches);
+                alert("All results have been successfully deleted.");
+                loadResults();
+            } catch (error) {
+                console.error("Error deleting all results: ", error);
+                alert("An error occurred while deleting. Some results may still exist.");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        };
+
         const formatDate = (timestamp) => {
             if (!timestamp) return "N/A";
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -994,7 +1045,10 @@
                             <button onclick="downloadExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase">Excel</button>
                         </div>
                     </div>
-                    <button onclick="approveAll()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-colors">Approve All for Students</button>
+                    <div class="flex gap-2">
+                        <button onclick="approveAll()" class="flex-2 bg-blue-600 text-white py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-colors w-full">Approve All</button>
+                        <button id="delete-all-btn" onclick="deleteAllResults()" class="flex-1 bg-red-100 text-red-600 py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-200 transition-colors whitespace-nowrap">Delete All</button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto border rounded-2xl bg-slate-50/50">
                     <table class="w-full text-left">
