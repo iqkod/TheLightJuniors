@@ -518,9 +518,9 @@
 
         window.downloadQuestionTemplate = () => {
             const wsData = [
-                ["No", "Question", "Option A", "Option B", "Option C", "Option D", "Correct Answers (comma separated)"],
-                [1, "Sample Question 1?", "A", "B", "C", "D", "a"],
-                [2, "Sample Question 2?", "A", "B", "C", "D", "b, d"]
+                ["No", "Question", "Option A", "Option B", "Option C", "Option D", "Correct Answers (comma separated)", "Marks (Optional)"],
+                [1, "Sample Question 1?", "A", "B", "C", "D", "a", 2],
+                [2, "Sample Question 2?", "A", "B", "C", "D", "b, d", 1]
             ];
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             const wb = XLSX.utils.book_new();
