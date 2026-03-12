@@ -368,9 +368,17 @@
                 const sel = storedSel.length > 0 ? storedSel.split(',') : [];
                 
                 const correct = Array.isArray(q.correct) ? q.correct : [q.correct];
-                const isCorrect = sel.length === correct.length && correct.every(c => sel.includes(c));
                 
-                const selText = sel.map(s => q[s]).join(', ');
+                let isCorrect = false;
+                if (sel.length === correct.length && sel.length > 0) {
+                    const sortedS = [...sel].sort();
+                    const sortedC = [...correct].sort();
+                    if (sortedS.every((val, index) => val === sortedC[index])) {
+                        isCorrect = true;
+                    }
+                }
+                
+                const selText = sel.length ? sel.map(s => q[s]).join(', ') : "No answer";
                 const correctText = correct.map(c => q[c]).join(', ');
 
                 const item = document.createElement('div');
