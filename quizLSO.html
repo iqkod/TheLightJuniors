@@ -355,7 +355,7 @@
             showScreen('student-result-screen');
             document.getElementById('sr-name').innerText = data.name;
             document.getElementById('sr-details').innerText = `${data.place} | ${data.mobile}`;
-            const maxScore = questions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
+            const maxScore = data.maxScore || questions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
             document.getElementById('sr-score').innerText = `${data.score}/${maxScore}`;
             
             const list = document.getElementById('sr-answers-list');
@@ -404,8 +404,17 @@
 
         // ADMIN FUNCTIONS
         window.openAdmin = () => {
+            const savedPass = localStorage.getItem('tlj_admin_auth');
+            if (savedPass === "LSO2026@siicNC") {
+                showScreen('admin-panel'); loadResults(); loadExamStatus();
+                return;
+            }
+
             const pass = prompt("Admin Password:");
-            if(pass === "LSO2026@siicNC") { showScreen('admin-panel'); loadResults(); loadExamStatus(); }
+            if(pass === "LSO2026@siicNC") { 
+                localStorage.setItem('tlj_admin_auth', pass);
+                showScreen('admin-panel'); loadResults(); loadExamStatus(); 
+            }
             else if(pass !== null) { alert("Wrong password."); }
         };
 

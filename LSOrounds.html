@@ -546,8 +546,17 @@
 
         // ADMIN FUNCTIONS
         window.openAdmin = () => {
+            const savedPass = localStorage.getItem('tlj_admin_auth');
+            if (savedPass === "LSO2026@siicNC") {
+                showScreen('admin-panel'); loadResults(); loadExamStatus();
+                return;
+            }
+
             const pass = prompt("Admin Password:");
-            if(pass === "LSO2026@siicNC") { showScreen('admin-panel'); loadResults(); loadExamStatus(); }
+            if(pass === "LSO2026@siicNC") { 
+                localStorage.setItem('tlj_admin_auth', pass);
+                showScreen('admin-panel'); loadResults(); loadExamStatus(); 
+            }
             else if(pass !== null) { alert("Wrong password."); }
         };
         async function loadExamStatus() {
