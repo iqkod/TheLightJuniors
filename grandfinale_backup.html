@@ -49,11 +49,9 @@
             const savedName = localStorage.getItem('tlj_name');
             const savedPlace = localStorage.getItem('tlj_place');
             const savedMobile = localStorage.getItem('tlj_mobile');
-            const savedDob = localStorage.getItem('tlj_dob');
             if(savedName) document.getElementById('name').value = savedName;
             if(savedPlace) document.getElementById('place').value = savedPlace;
             if(savedMobile) document.getElementById('mobile').value = savedMobile;
-            if(savedDob) document.getElementById('dob').value = savedDob;
         });
 
         let questions = [
@@ -115,17 +113,17 @@
             return submission;
         };
 
-        let dbDuration = 600;
+        window.startQuiz = async () => {
+            const name = document.getElementById('name').value.trim();
+            const place = document.getElementById('place').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            
+            if(!name || !place || !mobile) return alert("Please fill all fields.");
 
-        window.verifyMobile = async () => {
-            const mobileInput = document.getElementById('mobile');
-            const mobile = mobileInput.value.trim();
-            if (!mobile) return alert("Please enter your mobile number");
-
-            const btn = document.getElementById('login-btn');
-            const originalText = btn.innerText;
-            btn.innerText = "Verifying...";
-            btn.disabled = true;
+            const submitBtn = document.querySelector('#login-screen button');
+            const originalText = submitBtn.innerText;
+            submitBtn.innerText = "Verifying...";
+            submitBtn.disabled = true;
 
             try {
                 // Ensure anonymous login BEFORE doing any Firebase reads to avoid Permission Denied errors
@@ -137,105 +135,34 @@
                 if (configSnapSettings.exists() && configSnapSettings.data().allowAnyMobile) {
                     allowAny = true;
                 }
-                
-                if (configSnapSettings.exists() && configSnapSettings.data().durationMinutes) {
-                    dbDuration = configSnapSettings.data().durationMinutes * 60;
-                }
 
-                if (configSnapSettings.exists() && configSnapSettings.data().examStatus !== "open") {
-                    // Check if they already submitted, maybe they just want to see results
-                    const existing = await getExistingSubmission(mobile);
-                    if (existing && existing.approved) {
-                        // let them through to see results
-                    } else if (existing && !existing.approved) {
-                        alert("You have already submitted. Please wait for admin approval to view your results.");
-                        btn.innerText = originalText;
-                        btn.disabled = false;
-                        return;
-                    } else {
-                        alert("The exam is currently closed.");
-                        btn.innerText = originalText;
-                        btn.disabled = false;
-                        return;
-                    }
-                }
-
-                let isAuthorized = false;
-                let autoName = "";
-                let autoPlace = "";
-                let autoDob = "";
-
-                const configSnapAuth = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"));
-                if (configSnapAuth.exists()) {
-                    const authData = configSnapAuth.data();
-                    
-                    // Check logic for new format (details object)
-                    if (authData.details && authData.details[mobile]) {
-                        isAuthorized = true;
-                        autoName = authData.details[mobile].name || "";
-                        autoPlace = authData.details[mobile].place || "";
-                    } 
-                    // Fallback to old format just in case
-                    else if (authData.mobiles && authData.mobiles.includes(mobile)) {
-                        isAuthorized = true;
-                    }
-                } else if (allowedMobiles.includes(mobile)) {
-                    isAuthorized = true; // Fallback hardcoded
-                }
-                
                 if (allowAny) {
                     const mobileRegex = /^\d{1,4}-\d{5,15}$/;
                     if (!mobileRegex.test(mobile)) {
-                        btn.innerText = originalText;
-                        btn.disabled = false;
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
                         return alert("Please enter mobile number in format: CountryCode-MobileNumber (e.g. 966-501234567)");
                     }
                 } else {
-                    if (!isAuthorized) {
-                        btn.innerText = originalText;
-                        btn.disabled = false;
+                    const configSnapAuth = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"));
+                    let validMobiles = allowedMobiles;
+                    if (configSnapAuth.exists() && configSnapAuth.data().mobiles && configSnapAuth.data().mobiles.length > 0) {
+                        validMobiles = configSnapAuth.data().mobiles;
+                    }
+                    if(!validMobiles.includes(mobile)) {
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
                         return alert("Mobile number not authorized. Please contact the administrator.");
                     }
                 }
-                
-                // If we get here, they are allowed to proceed
-                mobileInput.readOnly = true;
-                mobileInput.classList.add("bg-emerald-50", "border-emerald-200", "text-emerald-800");
-                
-                const detailsSection = document.getElementById("details-section");
-                detailsSection.classList.remove("hidden");
-                
-                const nameInput = document.getElementById('name');
-                const placeInput = document.getElementById('place');
-                const dobInput = document.getElementById('dob');
-                
-                if (autoName) { nameInput.value = autoName; nameInput.readOnly = true; nameInput.classList.add("bg-slate-200"); }
-                if (autoPlace) { placeInput.value = autoPlace; placeInput.readOnly = true; placeInput.classList.add("bg-slate-200"); }
-                
-                btn.innerText = "START QUIZ";
-                btn.disabled = false;
-                btn.onclick = startQuiz;
-                
             } catch(e) {
                 console.error("Auth check failed", e);
-                btn.innerText = originalText;
-                btn.disabled = false;
+                submitBtn.innerText = originalText;
+                submitBtn.disabled = false;
                 return alert("Network error verifying mobile. Please try again.");
             }
-        };
 
-        window.startQuiz = async () => {
-            const name = document.getElementById('name').value.trim();
-            const place = document.getElementById('place').value.trim();
-            const mobile = document.getElementById('mobile').value.trim();
-            const dob = document.getElementById('dob').value;
-            
-            if(!name || !place || !mobile || !dob) return alert("Please fill all fields, including Date of Birth.");
-
-            const submitBtn = document.getElementById('login-btn');
-            const originalText = submitBtn.innerText;
-            submitBtn.innerText = "Loading...";
-            submitBtn.disabled = true;
+            let dbDuration = 600;
 
             try {
                 // Fetch the live questions before checking existing submissions so the results screen renders correctly
@@ -258,8 +185,26 @@
                     }
                     return;
                 }
+
+                // If not submitted, check Global Exam Status before allowing entry
+                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
+                if (configSnap.exists()) {
+                    if (configSnap.data().examStatus !== "open") {
+                        alert("The exam is currently closed.");
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
+                        return;
+                    }
+                    if (configSnap.data().durationMinutes) {
+                        dbDuration = configSnap.data().durationMinutes * 60;
+                    }
+                } else {
+                    alert("Exam configuration not found. Please contact admin.");
+                    submitBtn.innerText = originalText;
+                    submitBtn.disabled = false;
+                    return;
+                }
             } catch (e) {
-                console.error(e);
                 submitBtn.innerText = originalText;
                 submitBtn.disabled = false;
                 return;
@@ -268,8 +213,7 @@
             localStorage.setItem('tlj_name', name);
             localStorage.setItem('tlj_place', place);
             localStorage.setItem('tlj_mobile', mobile);
-            localStorage.setItem('tlj_dob', dob);
-            studentData = { name, place, mobile, dob, approved: false };
+            studentData = { name, place, mobile, approved: false };
             studentSelections = Array(questions.length).fill().map(() => ([]));
             hasReachedReview = false;
             showScreen('quiz-screen');
@@ -545,9 +489,9 @@
 
         window.downloadMobileTemplate = () => {
             const wsData = [
-                ["Mobile Number", "Name (Optional)", "Place (Optional)"],
-                ["966-501797382", "John Doe", "Riyadh"],
-                ["91-7356160643", "Jane Smith", "Kerala"]
+                ["Mobile Number"],
+                ["966-501797382"],
+                ["91-7356160643"]
             ];
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             const wb = XLSX.utils.book_new();
@@ -569,18 +513,9 @@
                 const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
                 
                 let newMobiles = [];
-                let details = {};
-
                 for (let i = 1; i < rows.length; i++) {
                     const mobile = rows[i][0];
-                    if (mobile) {
-                        const mStr = String(mobile).trim();
-                        newMobiles.push(mStr);
-                        details[mStr] = {
-                            name: rows[i][1] ? String(rows[i][1]).trim() : "",
-                            place: rows[i][2] ? String(rows[i][2]).trim() : ""
-                        };
-                    }
+                    if (mobile) newMobiles.push(String(mobile).trim());
                 }
                 
                 if (newMobiles.length === 0) return alert("No valid mobile numbers found.");
@@ -590,7 +525,7 @@
                 uploadBtn.innerText = "Uploading...";
                 
                 try {
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"), { mobiles: newMobiles, details: details, admin_secret: ADMIN_SECRET });
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"), { mobiles: newMobiles, admin_secret: ADMIN_SECRET });
                     alert(`Successfully updated authorized list with ${newMobiles.length} numbers!`);
                     fileInput.value = "";
                 } catch (err) {
@@ -841,7 +776,7 @@
                 allResultsData.push({ id: snap.id, ...d });
                 tbody.innerHTML += `
                     <tr class="border-b text-xs">
-                        <td class="p-3 font-bold">${d.name}<br><span class="text-[10px] text-slate-500 font-normal">DOB: ${d.dob ? new Date(d.dob).toLocaleDateString() : 'N/A'}</span></td>
+                        <td class="p-3 font-bold">${d.name}</td>
                         <td class="p-3">${d.place}</td>
                         <td class="p-3 font-mono">${d.mobile}</td>
                         <td class="p-3 text-center font-black">${d.score}/${d.maxScore || (d.selections ? d.selections.length : questions.length)}</td>
@@ -1034,16 +969,10 @@
                     <h1 class="text-4xl font-black text-slate-800 tracking-tight mb-2 uppercase italic">Portal</h1>
                     <p class="text-slate-400 text-sm font-semibold tracking-wide">Enter your details to Start or View Results</p>
                 </div>
+                <input type="text" id="name" placeholder="Full Name" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
+                <input type="text" id="place" placeholder="Your Place" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
                 <input type="text" id="mobile" placeholder="Mobile (966-XXXXXXXXX)" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
-                <div id="details-section" class="hidden space-y-6">
-                    <input type="text" id="name" placeholder="Full Name" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
-                    <input type="text" id="place" placeholder="Your Place" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 mb-1">Date of Birth</label>
-                        <input type="date" id="dob" class="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-blue-400 transition-colors text-slate-500 uppercase">
-                    </div>
-                </div>
-                <button id="login-btn" onclick="verifyMobile()" class="w-full bg-blue-600 text-white p-6 rounded-[1.5rem] font-black text-xl hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200">VERIFY MOBILE</button>
+                <button onclick="startQuiz()" class="w-full bg-blue-600 text-white p-6 rounded-[1.5rem] font-black text-xl hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200">CONTINUE</button>
                 <div class="text-center pt-8 border-t border-slate-50">
                     <button onclick="openAdmin()" class="text-[10px] font-black tracking-[0.3em] text-slate-200 hover:text-blue-400 uppercase">Admin Access</button>
                 </div>
