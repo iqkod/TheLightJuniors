@@ -821,6 +821,11 @@
 
         window.deleteResult = async (id) => {
             if(confirm("Delete this entry? Student can try again after deletion.")) {
+                const pass = prompt("Enter specialized delete password:");
+                if (pass !== "Charge@1983") {
+                    alert("Incorrect delete password.");
+                    return;
+                }
                 const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", id);
                 await updateDoc(ref, { admin_secret: ADMIN_SECRET });
                 await deleteDoc(ref);
@@ -837,6 +842,12 @@
             const secondConfirm = prompt("This action CANNOT BE UNDONE. Type 'DELETE' to confirm:");
             if (secondConfirm !== 'DELETE') {
                 alert("Bulk deletion cancelled.");
+                return;
+            }
+
+            const pass = prompt("Enter specialized delete password:");
+            if (pass !== "Charge@1983") {
+                alert("Incorrect delete password.");
                 return;
             }
 
