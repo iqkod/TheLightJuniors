@@ -9,7 +9,7 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- CONFIGURATION AREA ---
@@ -57,7 +57,22 @@
         let studentHistory = [];
 
         onAuthStateChanged(auth, (u) => { user = u; });
-        const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) {} };
+        let dashDbDuration = 600;
+        const initAuth = async () => { 
+            try { 
+                await signInAnonymously(auth); 
+                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quiz_config", "settings"));
+                if (configSnap.exists() && configSnap.data().durationMinutes) {
+                    dashDbDuration = configSnap.data().durationMinutes * 60;
+                    timeLeft = dashDbDuration;
+                    const min = Math.floor(timeLeft / 60);
+                    const sec = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+                }
+            } catch (e) {
+                console.error("Auth failed", e);
+            } 
+        };
         initAuth();
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -75,7 +90,7 @@
         };
 
         const startTimer = () => {
-            timeLeft = 600;
+            timeLeft = dashDbDuration;
             if(timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 if (timeLeft <= 0) {
@@ -352,7 +367,7 @@
             HOME
         </a>
         <div class="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black border border-blue-100">
-            <span id="timer-display">10:00</span>
+            <span id="timer-display">--:--</span>
         </div>
     </nav>
 

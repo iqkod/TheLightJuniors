@@ -43,7 +43,22 @@
 
         // AUTHENTICATION
         onAuthStateChanged(auth, (u) => { user = u; });
-        const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) { console.error("Auth failed"); } };
+        let LSOdbDuration = 600;
+        const initAuth = async () => { 
+            try { 
+                await signInAnonymously(auth); 
+                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "lsorounds_config", "settings"));
+                if (configSnap.exists() && configSnap.data().durationMinutes) {
+                    LSOdbDuration = configSnap.data().durationMinutes * 60;
+                    timeLeft = LSOdbDuration;
+                    const min = Math.floor(timeLeft / 60);
+                    const sec = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+                }
+            } catch (e) { 
+                console.error("Auth failed", e); 
+            } 
+        };
         initAuth();
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -1016,7 +1031,7 @@
             BACK TO HOME
         </a>
         <div class="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2 border border-blue-100">
-            <span id="timer-display">10:00</span>
+            <span id="timer-display">--:--</span>
         </div>
     </nav>
 
