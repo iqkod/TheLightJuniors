@@ -283,12 +283,13 @@
             const container = document.getElementById('review-list');
             container.innerHTML = '';
             questions.forEach((q, i) => {
-                const sel = studentSelections[i];
+                const sel = studentSelections[i] || [];
+                const isUnanswered = sel.length === 0;
                 const selUpper = sel.length ? sel.map(s => s.toUpperCase()).join(',') : '?';
                 const textLabel = sel.length ? sel.map(s => q[s]).join(', ') : "No answer";
                 const item = document.createElement('div');
-                item.className = "flex flex-col p-5 border-b text-sm bg-white";
-                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black text-blue-600 text-[10px]">Q${i+1} (${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''})</span><button onclick="editQuestion(${i})" class="text-blue-500 font-bold text-[10px] underline hover:text-blue-700 transition-colors">EDIT</button></div><div class="font-bold mb-3">${q.q}</div><div class="flex items-center gap-3"><span class="px-2 py-1 min-w-[24px] rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold text-slate-700">${textLabel}</span></div>`;
+                item.className = `flex flex-col p-5 border-b text-sm ${isUnanswered ? 'bg-red-50 border-red-200' : 'bg-white'}`;
+                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black ${isUnanswered ? 'text-red-600' : 'text-blue-600'} text-[10px]">Q${i+1} (${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}) ${isUnanswered ? '- UNANSWERED' : ''}</span><button onclick="editQuestion(${i})" class="${isUnanswered ? 'text-red-500 hover:text-red-700' : 'text-blue-500 font-bold hover:text-blue-700'} font-bold text-[10px] underline transition-colors">EDIT</button></div><div class="font-bold mb-3 ${isUnanswered ? 'text-red-900' : ''}">${q.q}</div><div class="flex items-center gap-3"><span class="px-2 py-1 min-w-[24px] rounded ${isUnanswered ? 'bg-red-500' : 'bg-blue-600'} text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold ${isUnanswered ? 'text-red-700' : 'text-slate-700'}">${textLabel}</span></div>`;
                 container.appendChild(item);
             });
         };
@@ -937,6 +938,15 @@
             XLSX.writeFile(wb, "TLJ_Quiz_Results.xlsx");
         };
     </script>
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #student-result-screen, #student-result-screen * { visibility: visible; }
+            #student-result-screen { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            #sr-answers-list { max-height: none !important; overflow: visible !important; }
+        }
+    </style>
 </head>
 <body class="bg-[#f8fafc] min-h-screen p-4 flex flex-col items-center">
 
@@ -1005,7 +1015,10 @@
                     <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">TOTAL SCORE</p>
                 </div>
                 <div id="sr-answers-list" class="mb-10 max-h-[450px] overflow-y-auto pr-2"></div>
-                <button onclick="location.reload()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-xs uppercase tracking-widest">Close Results</button>
+                <div class="flex gap-4 no-print">
+                    <button onclick="window.print()" class="w-full bg-blue-100 text-blue-700 p-5 rounded-2xl font-black text-xs uppercase tracking-widest border border-blue-200 hover:bg-blue-200 transition-colors">Print Result</button>
+                    <button onclick="location.reload()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-xs uppercase tracking-widest">Close Results</button>
+                </div>
             </div>
 
             <div id="finish-screen" class="hidden text-center py-20">
