@@ -834,6 +834,30 @@
             showScreen('admin-panel');
         };
 
+        window.downloadFinalQuestions = () => {
+            if (questions.length === 0) return alert("No questions available to download.");
+            const wsData = [
+                ["No", "Question", "Option A", "Option B", "Option C", "Option D", "Correct Answers (comma separated)", "Marks (Optional)"]
+            ];
+            questions.forEach((q, i) => {
+                const correctStr = Array.isArray(q.correct) ? q.correct.join(', ') : q.correct;
+                wsData.push([
+                    i + 1,
+                    q.q || "",
+                    q.a || "",
+                    q.b || "",
+                    q.c || "",
+                    q.d || "",
+                    correctStr,
+                    q.marks || 1
+                ]);
+            });
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Final Questions");
+            XLSX.writeFile(wb, "TLJ_Final_Questions.xlsx");
+        };
+
         window.loadResults = async function() {
             const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "quizLSO_results"), orderBy("at", "desc")));
             const tbody = document.getElementById('results-body');
@@ -1200,6 +1224,7 @@
                 </div>
                 
                 <button id="save-editor-btn" onclick="saveAdminQuestions()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-100 mb-4 transition-all active:scale-95">Save Changes</button>
+                <button onclick="downloadFinalQuestions()" class="w-full bg-emerald-100 text-emerald-700 p-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-emerald-200 shadow-sm border border-emerald-200 transition-all active:scale-95">Download Questions to Excel</button>
             </div>
 
         </div>
