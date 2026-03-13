@@ -46,7 +46,7 @@
         const initAuth = async () => { 
             try { 
                 await signInAnonymously(auth); 
-                const configSnapSettings = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
+                const configSnapSettings = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"));
                 if (configSnapSettings.exists() && configSnapSettings.data().durationMinutes) {
                     dbDuration = configSnapSettings.data().durationMinutes * 60;
                     timeLeft = dbDuration;
@@ -110,7 +110,7 @@
         };
 
         const getExistingSubmission = async (mobile) => {
-            const resultsRef = collection(db, "artifacts", appId, "public", "data", "quizLSO_results");
+            const resultsRef = collection(db, "artifacts", appId, "public", "data", "quizLSO_test_results");
             const q = query(resultsRef); 
             const querySnapshot = await getDocs(q);
             let submission = null;
@@ -135,7 +135,7 @@
                 const auth = getAuth();
                 await signInAnonymously(auth);
 
-                const configSnapSettings = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
+                const configSnapSettings = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"));
                 let allowAny = false;
                 if (configSnapSettings.exists() && configSnapSettings.data().allowAnyMobile) {
                     allowAny = true;
@@ -168,7 +168,7 @@
                 let autoPlace = "";
                 let autoDob = "";
 
-                const configSnapAuth = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"));
+                const configSnapAuth = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "authorized_mobiles"));
                 if (configSnapAuth.exists()) {
                     const authData = configSnapAuth.data();
                     
@@ -243,7 +243,7 @@
             try {
                 // Fetch the live questions before checking existing submissions so the results screen renders correctly
                 try {
-                    const qSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"));
+                    const qSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "questions"));
                     if (qSnap.exists() && qSnap.data().questions && qSnap.data().questions.length > 0) {
                         questions = qSnap.data().questions;
                     }
@@ -362,7 +362,7 @@
 
             try {
                 // Check Global Exam Status Before Submission
-                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
+                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"));
                 if (configSnap.exists()) {
                     if (configSnap.data().examStatus !== "open") {
                         alert("The exam has been closed by the admin. Submissions are no longer accepted.");
@@ -398,7 +398,7 @@
                 const stringifiedSelections = studentSelections.map(sel => sel.join(','));
                 const maxScore = questions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
 
-                await addDoc(collection(db, "artifacts", appId, "public", "data", "quizLSO_results"), {
+                await addDoc(collection(db, "artifacts", appId, "public", "data", "quizLSO_test_results"), {
                     ...studentData, score, maxScore, selections: stringifiedSelections, at: serverTimestamp()
                 });
                 isSubmitted = true;
@@ -486,7 +486,7 @@
 
         async function loadExamStatus() {
             try {
-                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"));
+                const configSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"));
                 if (configSnap.exists()) {
                     updateExamStatusUI(configSnap.data().examStatus);
                     updateAllowAnyUI(configSnap.data().allowAnyMobile);
@@ -495,7 +495,7 @@
                     }
                 } else {
                     // Default to closed if not set
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { examStatus: "closed", allowAnyMobile: false, admin_secret: ADMIN_SECRET });
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"), { examStatus: "closed", allowAnyMobile: false, admin_secret: ADMIN_SECRET });
                     updateExamStatusUI("closed");
                     updateAllowAnyUI(false);
                 }
@@ -524,7 +524,7 @@
             const newStatus = btn.dataset.status !== "on";
             if (!confirm(`Are you sure you want to ${newStatus ? 'ALLOW ANY MOBILE NUMBER' : 'RESTRICT TO AUTHORIZED NUMBERS'}?`)) return;
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { allowAnyMobile: newStatus, admin_secret: ADMIN_SECRET }, { merge: true });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"), { allowAnyMobile: newStatus, admin_secret: ADMIN_SECRET }, { merge: true });
                 updateAllowAnyUI(newStatus);
             } catch(e) {
                 console.error("Failed to update allow any status", e);
@@ -538,7 +538,7 @@
             if (isNaN(min) || min < 1) return alert("Please enter a valid time in minutes.");
             
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { durationMinutes: min, admin_secret: ADMIN_SECRET }, { merge: true });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"), { durationMinutes: min, admin_secret: ADMIN_SECRET }, { merge: true });
                 alert(`Duration saved as ${min} minutes.`);
             } catch (err) {
                 console.error(err);
@@ -593,7 +593,7 @@
                 uploadBtn.innerText = "Uploading...";
                 
                 try {
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "authorized_mobiles"), { mobiles: newMobiles, details: details, admin_secret: ADMIN_SECRET });
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "authorized_mobiles"), { mobiles: newMobiles, details: details, admin_secret: ADMIN_SECRET });
                     alert(`Successfully updated authorized list with ${newMobiles.length} numbers!`);
                     fileInput.value = "";
                 } catch (err) {
@@ -675,7 +675,7 @@
                 uploadBtn.innerText = "Uploading...";
                 
                 try {
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"), { questions: newQuestions, admin_secret: ADMIN_SECRET });
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "questions"), { questions: newQuestions, admin_secret: ADMIN_SECRET });
                     alert(`Successfully updated with ${newQuestions.length} questions!`);
                     fileInput.value = "";
                 } catch (err) {
@@ -711,7 +711,7 @@
         window.setExamStatus = async (status) => {
             if (!confirm(`Are you sure you want to ${status.toUpperCase()} the exam?`)) return;
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "settings"), { examStatus: status, admin_secret: ADMIN_SECRET }, { merge: true });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"), { examStatus: status, admin_secret: ADMIN_SECRET }, { merge: true });
                 updateExamStatusUI(status);
             } catch (e) {
                 console.error("Failed to update status", e);
@@ -725,7 +725,7 @@
         window.openQuestionEditor = async () => {
             adminEditingQuestions = [...questions];
             try {
-                const qSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"));
+                const qSnap = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "questions"));
                 if (qSnap.exists() && qSnap.data().questions) {
                     adminEditingQuestions = qSnap.data().questions;
                 }
@@ -817,7 +817,7 @@
             }
             
             try {
-                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_config", "questions"), { questions: newQ, admin_secret: ADMIN_SECRET });
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "questions"), { questions: newQ, admin_secret: ADMIN_SECRET });
                 questions = newQ; // update local
                 alert("Questions saved successfully.");
                 closeAdminEditor();
@@ -835,7 +835,7 @@
         };
 
         window.loadResults = async function() {
-            const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "quizLSO_results"), orderBy("at", "desc")));
+            const qSnap = await getDocs(query(collection(db, "artifacts", appId, "public", "data", "quizLSO_test_results"), orderBy("at", "desc")));
             const tbody = document.getElementById('results-body');
             tbody.innerHTML = '';
             allResultsData = [];
@@ -864,7 +864,7 @@
 
         window.approveResult = async (id) => {
             try {
-                const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", id);
+                const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_test_results", id);
                 await updateDoc(ref, { approved: true, admin_secret: ADMIN_SECRET });
                 loadResults();
             } catch (e) {
@@ -879,7 +879,7 @@
             const batch = writeBatch(db);
             allResultsData.forEach(res => {
                 if(!res.approved) {
-                    const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", res.id);
+                    const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_test_results", res.id);
                     batch.update(ref, { approved: true, admin_secret: ADMIN_SECRET });
                 }
             });
@@ -895,7 +895,7 @@
                     alert("Incorrect delete password.");
                     return;
                 }
-                const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", id);
+                const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_test_results", id);
                 await updateDoc(ref, { admin_secret: ADMIN_SECRET });
                 await deleteDoc(ref);
                 loadResults();
@@ -932,7 +932,7 @@
                 let uCount = 0;
 
                 allResultsData.forEach((res) => {
-                    const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", res.id);
+                    const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_test_results", res.id);
                     uBatch.update(ref, { admin_secret: ADMIN_SECRET });
                     uCount++;
                     
@@ -955,7 +955,7 @@
                 let dCount = 0;
 
                 allResultsData.forEach((res) => {
-                    const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_results", res.id);
+                    const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_test_results", res.id);
                     dBatch.delete(ref);
                     dCount++;
                     
