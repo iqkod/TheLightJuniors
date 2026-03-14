@@ -324,9 +324,9 @@
         window.selectOption = (opt) => { 
             const sels = studentSelections[currentQuestion];
             if (sels.includes(opt)) {
-                studentSelections[currentQuestion] = sels.filter(o => o !== opt);
+                studentSelections[currentQuestion] = []; // Deselect if already selected
             } else {
-                sels.push(opt);
+                studentSelections[currentQuestion] = [opt]; // Restrict to single selection
             }
             renderQuestion(); 
         };
