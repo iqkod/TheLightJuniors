@@ -69,6 +69,25 @@
 </head>
 <body class="bg-slate-50 text-slate-900">
 
+    <!-- Live Countdown Banner -->
+    <div id="live-banner" class="bg-indigo-600 text-white py-2.5 px-4 text-center text-sm font-bold shadow-md relative z-[60] overflow-hidden">
+        <!-- Animated Background Element -->
+        <div class="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-red-600/20 animate-pulse"></div>
+        
+        <div class="relative flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 tracking-wide">
+            <span id="banner-status" class="flex items-center gap-1.5 uppercase font-black tracking-widest text-yellow-300">
+                <span class="relative flex h-3 w-3">
+                  <span id="pulse-ring" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                Grand Finale Today
+            </span>
+            <span id="banner-timer" class="bg-indigo-900/50 px-3 py-1 rounded-full font-mono text-xs sm:text-sm border border-indigo-400/30 font-black">
+                Loading time...
+            </span>
+        </div>
+    </div>
+
     <!-- Navbar -->
     <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -109,8 +128,13 @@
             </p>
             <div class="flex flex-col sm:flex-row justify-center gap-4">
                 <!-- Final Exam Link -->
-                <a href="grandfinale.html" class="pulse-red bg-red-600 text-white px-8 py-4 rounded-xl font-black text-lg shadow-2xl transition hover:scale-105 flex items-center justify-center gap-2">
-                    <i data-lucide="award"></i> Enter demo exam
+                <a href="grandfinale.html" class="pulse-red bg-red-600 text-white px-8 py-3 rounded-xl shadow-2xl transition hover:scale-105 flex flex-col items-center justify-center border-2 border-red-400 gap-1">
+                    <div class="font-black text-xl md:text-2xl flex items-center gap-2 drop-shadow-md">
+                        <i data-lucide="award"></i> Enter to Grand Finale 2026
+                    </div>
+                    <div class="text-[11px] md:text-sm font-bold bg-white/20 px-4 py-1.5 rounded-full mt-1 text-center shadow-inner">
+                        🕰️ 1:30 to 2:30 pm KSA 🇸🇦 <span class="hidden sm:inline">|</span><br class="sm:hidden"> 🕰️ 4:00 to 5:00 pm India 🇮🇳
+                    </div>
                 </a>
                 <a href="http://thelightjuniors.islahiweb.org/" target="_blank" class="btn-shine bg-yellow-400 text-blue-900 px-8 py-4 rounded-xl font-black text-lg shadow-2xl transition hover:scale-105 flex items-center justify-center gap-2">
                     🚀 DAILY PORTAL
@@ -314,6 +338,69 @@
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
+
+        // Banner Logic
+        const bannerStatus = document.getElementById('banner-status');
+        const bannerTimer = document.getElementById('banner-timer');
+        const pulseRing = document.getElementById('pulse-ring');
+        const liveBanner = document.getElementById('live-banner');
+        
+        // Target: March 14, 2026 13:30:00 AST (Riyadh) -> AST is UTC+3
+        // So 13:30 AST = 10:30 UTC
+        const examStartTime = new Date(Date.UTC(2026, 2, 14, 10, 30, 0)).getTime(); // Month is 0-indexed (2 = March)
+        const examEndTime = new Date(Date.UTC(2026, 2, 14, 11, 30, 0)).getTime(); // 1 hour later (14:30 AST)
+
+        function updateBanner() {
+            const now = new Date().getTime();
+            
+            if (now < examStartTime) {
+                // BEFORE EXAM - Counting Down
+                const distance = examStartTime - now;
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                bannerTimer.innerHTML = `Starts in: <span class="text-white">${hours}h ${minutes}m ${seconds}s</span>`;
+            } else if (now >= examStartTime && now < examEndTime) {
+                // EXAM IS LIVE (Within 1 hour window)
+                const distance = examEndTime - now;
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                bannerStatus.innerHTML = `
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                EXAM NOW LIVE`;
+                bannerStatus.classList.remove('text-yellow-300');
+                bannerStatus.classList.add('text-emerald-300');
+                
+                liveBanner.classList.remove('bg-indigo-600');
+                liveBanner.classList.add('bg-emerald-700');
+                
+                bannerTimer.innerHTML = `Time Remaining: <span class="text-white">${minutes}m ${seconds}s</span>`;
+            } else {
+                // EXAM CLOSED (After 1 hour window)
+                bannerStatus.innerHTML = `EXAM CLOSED`;
+                bannerStatus.classList.remove('text-yellow-300', 'text-emerald-300');
+                bannerStatus.classList.add('text-slate-300');
+                
+                liveBanner.classList.remove('bg-indigo-600', 'bg-emerald-700');
+                liveBanner.classList.add('bg-slate-800');
+                
+                bannerTimer.innerHTML = `Thank you for participating`;
+                bannerTimer.classList.remove('bg-indigo-900/50', 'border-indigo-400/30');
+                bannerTimer.classList.add('bg-slate-700/50', 'border-slate-600/50');
+                
+                // Stop updating once closed
+                clearInterval(bannerInterval);
+            }
+        }
+
+        // Run immediately and then every second
+        updateBanner();
+        const bannerInterval = setInterval(updateBanner, 1000);
     </script>
 </body>
 </html>
