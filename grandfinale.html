@@ -1012,7 +1012,7 @@
         window.downloadExcel = () => {
             if(allResultsData.length === 0) return alert("No results to download.");
             const sheetData = allResultsData.map(res => {
-                const row = { "Name": res.name, "Place": res.place, "Mobile": res.mobile, "Score": res.score, "Approved": res.approved ? "Yes" : "No", "Time": formatDate(res.at) };
+                const row = { "Name": res.name, "DOB": res.dob ? new Date(res.dob).toLocaleDateString() : 'N/A', "Place": res.place, "Mobile": res.mobile, "Score": res.score, "Approved": res.approved ? "Yes" : "No", "Time": formatDate(res.at) };
                 const numQ = res.selections ? Math.max(res.selections.length, questions.length) : questions.length;
                 for(let i=0; i<numQ; i++) {
                     const sel = res.selections ? res.selections[i] : null;
