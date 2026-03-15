@@ -72,6 +72,7 @@
         });
 
         let questions = [];
+        let shuffledQuestions = [];
 
         const allowedMobiles = [];
 
@@ -277,8 +278,46 @@
                 startTime = new Date().toISOString();
                 localStorage.setItem(`tlj_startTime_${mobile}`, startTime);
             }
+            
+            // Check if we already created a shuffle order for this user to prevent re-shuffling on refresh
+            let savedOrder = localStorage.getItem(`tlj_order_${mobile}`);
+            if (savedOrder) {
+                const orderArr = JSON.parse(savedOrder);
+                // Only use saved order if it matches the current number of questions
+                if (orderArr.length === questions.length) {
+                    shuffledQuestions = orderArr.map(originalIndex => ({ ...questions[originalIndex], originalIndex }));
+                } else {
+                    savedOrder = null; // lengths mismatch, need new shuffle
+                }
+            }
+            
+            if (!savedOrder) {
+                // Create a mapped array to keep track of original indices so we can save answers correctly
+                shuffledQuestions = questions.map((q, i) => ({ ...q, originalIndex: i }));
+                
+                // Fisher-Yates shuffle algorithm
+                for (let i = shuffledQuestions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffledQuestions[i], shuffledQuestions[j]] = [shuffledQuestions[j], shuffledQuestions[i]];
+                }
+                
+                // Save the shuffled order of original indices
+                localStorage.setItem(`tlj_order_${mobile}`, JSON.stringify(shuffledQuestions.map(q => q.originalIndex)));
+            }
+
             studentData = { name, place, mobile, dob, approved: false, startTime };
             studentSelections = Array(questions.length).fill().map(() => ([]));
+            
+            // If there's an existing selection array saved (e.g. they refreshed), load it
+            let savedSel = localStorage.getItem(`tlj_sel_${mobile}`);
+            if (savedSel) {
+                try {
+                    studentSelections = JSON.parse(savedSel);
+                    // Fill remaining if questions were added
+                    while(studentSelections.length < questions.length) studentSelections.push([]);
+                } catch(e) {}
+            }
+            
             hasReachedReview = false;
             showScreen('quiz-screen');
             
@@ -302,13 +341,14 @@
         };
 
         const renderQuestion = () => {
-            const q = questions[currentQuestion];
-            document.getElementById('q-title').innerText = `Question ${currentQuestion + 1} of ${questions.length} - ${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}`;
+            const q = shuffledQuestions[currentQuestion];
+            const originalIndex = q.originalIndex;
+            document.getElementById('q-title').innerText = `Question ${currentQuestion + 1} of ${shuffledQuestions.length} - ${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}`;
             document.getElementById('q-text').innerText = q.q;
             ['a','b','c','d'].forEach(l => {
                 const btn = document.getElementById('btn-opt-' + l);
                 document.getElementById('opt-' + l).innerText = q[l];
-                if (studentSelections[currentQuestion].includes(l)) {
+                if (studentSelections[originalIndex].includes(l)) {
                     btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
                     btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
                 } else {
@@ -321,24 +361,26 @@
                 document.getElementById('next-btn').innerText = 'Back to Review';
             } else {
                 document.getElementById('prev-btn').style.visibility = currentQuestion === 0 ? 'hidden' : 'visible';
-                document.getElementById('next-btn').innerText = currentQuestion === questions.length - 1 ? 'Review Answers' : 'Next';
+                document.getElementById('next-btn').innerText = currentQuestion === shuffledQuestions.length - 1 ? 'Review Answers' : 'Next';
             }
-            document.getElementById('progress-bar').style.width = `${((currentQuestion + 1) / questions.length) * 100}%`;
+            document.getElementById('progress-bar').style.width = `${((currentQuestion + 1) / shuffledQuestions.length) * 100}%`;
         };
 
         window.selectOption = (opt) => { 
-            const sels = studentSelections[currentQuestion];
+            const originalIndex = shuffledQuestions[currentQuestion].originalIndex;
+            const sels = studentSelections[originalIndex];
             if (sels.includes(opt)) {
-                studentSelections[currentQuestion] = sels.filter(o => o !== opt);
+                studentSelections[originalIndex] = sels.filter(o => o !== opt);
             } else {
                 sels.push(opt);
             }
+            localStorage.setItem(`tlj_sel_${studentData.mobile}`, JSON.stringify(studentSelections));
             renderQuestion(); 
         };
         window.goPrev = () => { if (currentQuestion > 0) { currentQuestion--; renderQuestion(); } };
         window.goNextOrReview = () => {
             if (hasReachedReview) { showReview(); }
-            else if (currentQuestion < questions.length - 1) { currentQuestion++; renderQuestion(); } else { showReview(); }
+            else if (currentQuestion < shuffledQuestions.length - 1) { currentQuestion++; renderQuestion(); } else { showReview(); }
         };
 
         const showReview = () => {
@@ -349,14 +391,16 @@
             showScreen('review-screen');
             const container = document.getElementById('review-list');
             container.innerHTML = '';
-            questions.forEach((q, i) => {
-                const sel = studentSelections[i] || [];
+            
+            shuffledQuestions.forEach((q, displayIndex) => {
+                const originalIndex = q.originalIndex;
+                const sel = studentSelections[originalIndex] || [];
                 const isUnanswered = sel.length === 0;
                 const selUpper = sel.length ? sel.map(s => s.toUpperCase()).join(',') : '?';
                 const textLabel = sel.length ? sel.map(s => q[s]).join(', ') : "No answer";
                 const item = document.createElement('div');
                 item.className = `flex flex-col p-5 border-b text-sm ${isUnanswered ? 'bg-red-50 border-red-200' : 'bg-white'}`;
-                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black ${isUnanswered ? 'text-red-600' : 'text-blue-600'} text-[10px]">Q${i+1} (${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}) ${isUnanswered ? '- UNANSWERED' : ''}</span><button onclick="editQuestion(${i})" class="${isUnanswered ? 'text-red-500 hover:text-red-700' : 'text-blue-500 font-bold hover:text-blue-700'} font-bold text-[10px] underline transition-colors">EDIT</button></div><div class="font-bold mb-3 ${isUnanswered ? 'text-red-900' : ''}">${q.q}</div><div class="flex items-center gap-3"><span class="px-2 py-1 min-w-[24px] rounded ${isUnanswered ? 'bg-red-500' : 'bg-blue-600'} text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold ${isUnanswered ? 'text-red-700' : 'text-slate-700'}">${textLabel}</span></div>`;
+                item.innerHTML = `<div class="flex justify-between mb-2"><span class="font-black ${isUnanswered ? 'text-red-600' : 'text-blue-600'} text-[10px]">Q${displayIndex+1} (${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}) ${isUnanswered ? '- UNANSWERED' : ''}</span><button onclick="editQuestion(${displayIndex})" class="${isUnanswered ? 'text-red-500 hover:text-red-700' : 'text-blue-500 font-bold hover:text-blue-700'} font-bold text-[10px] underline transition-colors">EDIT</button></div><div class="font-bold mb-3 ${isUnanswered ? 'text-red-900' : ''}">${q.q}</div><div class="flex items-center gap-3"><span class="px-2 py-1 min-w-[24px] rounded ${isUnanswered ? 'bg-red-500' : 'bg-blue-600'} text-white flex items-center justify-center text-[10px] font-bold">${selUpper}</span><span class="font-bold ${isUnanswered ? 'text-red-700' : 'text-slate-700'}">${textLabel}</span></div>`;
                 container.appendChild(item);
             });
         };
@@ -413,6 +457,8 @@
                 if(timerInterval) clearInterval(timerInterval);
                 localStorage.removeItem(`tlj_timer_${studentData.mobile}`); // Clear saved timer
                 localStorage.removeItem(`tlj_startTime_${studentData.mobile}`); // Clear start time
+                localStorage.removeItem(`tlj_order_${studentData.mobile}`); // Clear shuffle
+                localStorage.removeItem(`tlj_sel_${studentData.mobile}`); // Clear selections
                 showScreen('finish-screen');
             } catch (e) {
                 console.error(e);
