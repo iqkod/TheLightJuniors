@@ -77,7 +77,7 @@
         const allowedMobiles = [];
 
         const showScreen = (id) => {
-            ['login-screen', 'quiz-screen', 'review-screen', 'finish-screen', 'admin-panel', 'student-result-screen', 'admin-editor-screen'].forEach(s => {
+            ['login-screen', 'quiz-screen', 'review-screen', 'finish-screen', 'admin-panel', 'student-result-screen', 'admin-editor-screen', 'admin-mobile-editor-screen'].forEach(s => {
                 document.getElementById(s)?.classList.add('hidden');
             });
             document.getElementById(id)?.classList.remove('hidden');
@@ -144,6 +144,12 @@
                 
                 if (configSnapSettings.exists() && configSnapSettings.data().durationMinutes) {
                     dbDuration = configSnapSettings.data().durationMinutes * 60;
+                }
+                
+                if (configSnapSettings.exists() && configSnapSettings.data().shuffleQuestions !== undefined) {
+                    window.shouldShuffle = configSnapSettings.data().shuffleQuestions;
+                } else {
+                    window.shouldShuffle = false;
                 }
 
                 if (configSnapSettings.exists() && configSnapSettings.data().examStatus !== "open") {
@@ -295,13 +301,15 @@
                 // Create a mapped array to keep track of original indices so we can save answers correctly
                 shuffledQuestions = questions.map((q, i) => ({ ...q, originalIndex: i }));
                 
-                // Fisher-Yates shuffle algorithm
-                for (let i = shuffledQuestions.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [shuffledQuestions[i], shuffledQuestions[j]] = [shuffledQuestions[j], shuffledQuestions[i]];
+                if (window.shouldShuffle) {
+                    // Fisher-Yates shuffle algorithm
+                    for (let i = shuffledQuestions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffledQuestions[i], shuffledQuestions[j]] = [shuffledQuestions[j], shuffledQuestions[i]];
+                    }
                 }
                 
-                // Save the shuffled order of original indices
+                // Save the (potentially shuffled) order of original indices
                 localStorage.setItem(`tlj_order_${mobile}`, JSON.stringify(shuffledQuestions.map(q => q.originalIndex)));
             }
 
@@ -545,14 +553,16 @@
                 if (configSnap.exists()) {
                     updateExamStatusUI(configSnap.data().examStatus);
                     updateAllowAnyUI(configSnap.data().allowAnyMobile);
+                    updateShuffleUI(configSnap.data().shuffleQuestions);
                     if (configSnap.data().durationMinutes) {
                         document.getElementById('admin-duration').value = configSnap.data().durationMinutes;
                     }
                 } else {
                     // Default to closed if not set
-                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"), { examStatus: "closed", allowAnyMobile: false, admin_secret: ADMIN_SECRET });
+                    await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"), { examStatus: "closed", allowAnyMobile: false, shuffleQuestions: false, admin_secret: ADMIN_SECRET });
                     updateExamStatusUI("closed");
                     updateAllowAnyUI(false);
+                    updateShuffleUI(false);
                 }
             } catch (e) {
                 console.error("Error loading exam status", e);
@@ -573,6 +583,21 @@
                 }
             }
         }
+        
+        function updateShuffleUI(isShuffled) {
+            const toggleBtn = document.getElementById('shuffle-toggle');
+            if(toggleBtn) {
+                if(isShuffled) {
+                    toggleBtn.innerText = "ON (Shuffled)";
+                    toggleBtn.className = "bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-indigo-600 transition-colors";
+                    toggleBtn.dataset.status = "on";
+                } else {
+                    toggleBtn.innerText = "OFF (Fixed Order)";
+                    toggleBtn.className = "bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-slate-400 transition-colors";
+                    toggleBtn.dataset.status = "off";
+                }
+            }
+        }
 
         window.toggleAllowAnyMobile = async () => {
             const btn = document.getElementById('allow-any-toggle');
@@ -583,6 +608,19 @@
                 updateAllowAnyUI(newStatus);
             } catch(e) {
                 console.error("Failed to update allow any status", e);
+                alert("Failed to update.");
+            }
+        };
+
+        window.toggleShuffle = async () => {
+            const btn = document.getElementById('shuffle-toggle');
+            const newStatus = btn.dataset.status !== "on";
+            if (!confirm(`Are you sure you want to ${newStatus ? 'ENABLE QUESTION SHUFFLING' : 'DISABLE QUESTION SHUFFLING'} for all new test takers?`)) return;
+            try {
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "settings"), { shuffleQuestions: newStatus, admin_secret: ADMIN_SECRET }, { merge: true });
+                updateShuffleUI(newStatus);
+            } catch(e) {
+                console.error("Failed to update shuffle status", e);
                 alert("Failed to update.");
             }
         };
@@ -1375,6 +1413,22 @@
                             <p class="text-[10px] text-slate-400 font-bold">Allow any valid formatted number to join (e.g. 91-9999999999)</p>
                         </div>
                         <button id="allow-any-toggle" onclick="toggleAllowAnyMobile()" class="bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase transition-colors" data-status="off">OFF (Strict Mode)</button>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-2">
+                        <div>
+                            <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Question Shuffling</h3>
+                            <p class="text-[10px] text-slate-400 font-bold">Randomize question order for each new student</p>
+                        </div>
+                        <button id="shuffle-toggle" onclick="toggleShuffle()" class="bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase transition-colors" data-status="off">OFF (Fixed Order)</button>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-2">
+                        <div>
+                            <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Question Shuffling</h3>
+                            <p class="text-[10px] text-slate-400 font-bold">Randomize question order for each new student</p>
+                        </div>
+                        <button id="shuffle-toggle" onclick="toggleShuffle()" class="bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase transition-colors" data-status="off">OFF (Fixed Order)</button>
                     </div>
 
                     <div class="flex flex-col md:flex-row gap-4 mt-2">
