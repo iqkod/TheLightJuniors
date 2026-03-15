@@ -1047,6 +1047,36 @@
                 ]);
             });
             const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // Loop through all cells to add text wrapping
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for(let R = range.s.r; R <= range.e.r; ++R) {
+                for(let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell_address = {c:C, r:R};
+                    const cell_ref = XLSX.utils.encode_cell(cell_address);
+                    if(!ws[cell_ref]) continue;
+                    // Apply styling for wrap text vertically aligned top
+                    ws[cell_ref].s = {
+                        alignment: {
+                            wrapText: true,
+                            vertical: "top"
+                        }
+                    };
+                }
+            }
+            
+            // Set some column widths for better view
+            ws['!cols'] = [
+                { wch: 5 },   // No
+                { wch: 50 },  // Question
+                { wch: 30 },  // Option A
+                { wch: 30 },  // Option B
+                { wch: 30 },  // Option C
+                { wch: 30 },  // Option D
+                { wch: 20 },  // Correct Answers
+                { wch: 15 }   // Marks
+            ];
+            
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Final Questions");
             XLSX.writeFile(wb, "TLJ_Final_Questions.xlsx");
