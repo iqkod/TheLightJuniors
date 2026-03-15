@@ -616,6 +616,107 @@
             reader.readAsArrayBuffer(file);
         };
 
+        // ADMIN MOBILE EDITOR
+        let adminEditingMobiles = [];
+
+        window.openMobileEditor = async () => {
+            adminEditingMobiles = [];
+            try {
+                const configSnapAuth = await getDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "authorized_mobiles"));
+                if (configSnapAuth.exists()) {
+                    const authData = configSnapAuth.data();
+                    if (authData.details) {
+                        for (const [mob, info] of Object.entries(authData.details)) {
+                            adminEditingMobiles.push({ mobile: mob, name: info.name || "", place: info.place || "" });
+                        }
+                    } else if (authData.mobiles) {
+                        authData.mobiles.forEach(mob => {
+                            adminEditingMobiles.push({ mobile: mob, name: "", place: "" });
+                        });
+                    }
+                }
+            } catch(e) {
+                console.error("Failed fetching mobiles for editor", e);
+            }
+            renderMobileEditor();
+            showScreen('admin-mobile-editor-screen');
+        };
+
+        window.renderMobileEditor = () => {
+            const container = document.getElementById('admin-mobile-list');
+            container.innerHTML = '';
+            
+            adminEditingMobiles.forEach((m, i) => {
+                container.innerHTML += `
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-3 flex gap-2 items-center">
+                    <div class="flex-1">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase">Mobile (e.g. 966-501234567)</label>
+                        <input type="text" id="edit-mob-${i}" value="${m.mobile}" class="w-full p-1.5 border border-emerald-300 rounded text-xs font-mono bg-emerald-50 text-emerald-800">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase">Name (Optional)</label>
+                        <input type="text" id="edit-mob-name-${i}" value="${m.name}" class="w-full p-1.5 border rounded text-xs">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase">Place (Optional)</label>
+                        <input type="text" id="edit-mob-place-${i}" value="${m.place}" class="w-full p-1.5 border rounded text-xs">
+                    </div>
+                    <div class="pt-4">
+                        <button onclick="deleteAdminMobile(${i})" class="text-red-500 font-black text-lg hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors pb-1">&times;</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('mobile-count-badge').innerText = adminEditingMobiles.length;
+        };
+
+        window.deleteAdminMobile = (i) => {
+            adminEditingMobiles.splice(i, 1);
+            renderMobileEditor();
+        };
+
+        window.addAdminMobile = () => {
+            adminEditingMobiles.push({ mobile: "", name: "", place: "" });
+            renderMobileEditor();
+            const container = document.getElementById('admin-mobile-list');
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
+        };
+
+        window.saveAdminMobiles = async () => {
+            const btn = document.getElementById('save-mobiles-btn');
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+            
+            let newMobiles = [];
+            let details = {};
+            
+            for (let i = 0; i < adminEditingMobiles.length; i++) {
+                const mobStr = document.getElementById(`edit-mob-${i}`).value.trim();
+                const nameStr = document.getElementById(`edit-mob-name-${i}`).value.trim();
+                const placeStr = document.getElementById(`edit-mob-place-${i}`).value.trim();
+                
+                if (mobStr) {
+                    newMobiles.push(mobStr);
+                    details[mobStr] = { name: nameStr, place: placeStr };
+                }
+            }
+            
+            try {
+                await setDoc(doc(db, "artifacts", appId, "public", "data", "quizLSO_test_config", "authorized_mobiles"), { mobiles: newMobiles, details: details, admin_secret: ADMIN_SECRET });
+                alert("Authorized mobiles saved successfully.");
+                closeMobileEditor();
+            } catch(e) {
+                console.error(e);
+                alert("Failed to save changes.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Save Changes";
+            }
+        };
+
+        window.closeMobileEditor = () => {
+            showScreen('admin-panel');
+        };
+
         window.downloadQuestionTemplate = () => {
             const wsData = [
                 ["No", "Question", "Option A", "Option B", "Option C", "Option D", "Correct Answers (comma separated)", "Marks (Optional)"],
@@ -1015,6 +1116,71 @@
             }
         };
 
+        window.recalculateAllScores = async () => {
+            if(allResultsData.length === 0) return alert("No results to recalculate.");
+            if(!confirm("Are you sure you want to recalculate all scores based on the current live questions? This will update the total marks for every submitted student.")) return;
+
+            const btn = document.getElementById('recalculate-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Recalculating...";
+            btn.disabled = true;
+
+            try {
+                const maxScore = questions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
+                const updateBatches = [];
+                let uBatch = writeBatch(db);
+                let uCount = 0;
+
+                allResultsData.forEach((res) => {
+                    let newScore = 0;
+                    if (res.selections && Array.isArray(res.selections)) {
+                        newScore = res.selections.reduce((acc, selString, i) => {
+                            if (!questions[i]) return acc;
+                            const q = questions[i];
+                            const correct = q.correct;
+                            const correctArr = Array.isArray(correct) ? correct : [correct];
+                            if (!selString || typeof selString !== 'string') return acc;
+                            
+                            const selArr = selString.split(',').map(s=>s.trim()).filter(s=>s);
+                            if (selArr.length !== correctArr.length || selArr.length === 0) return acc;
+                            
+                            const sortedS = [...selArr].sort();
+                            const sortedC = [...correctArr].sort();
+                            
+                            if (sortedS.every((val, index) => val === sortedC[index])) {
+                                return acc + (Number(q.marks) || 1);
+                            }
+                            return acc;
+                        }, 0);
+                    }
+
+                    const ref = doc(db, "artifacts", appId, "public", "data", "quizLSO_test_results", res.id);
+                    uBatch.update(ref, { score: newScore, maxScore: maxScore, admin_secret: ADMIN_SECRET });
+                    uCount++;
+                    
+                    if (uCount === 490) {
+                        updateBatches.push(uBatch.commit());
+                        uBatch = writeBatch(db);
+                        uCount = 0;
+                    }
+                });
+                
+                if (uCount > 0) {
+                    updateBatches.push(uBatch.commit());
+                }
+
+                await Promise.all(updateBatches);
+                alert("All scores have been successfully recalculated.");
+                loadResults();
+            } catch (error) {
+                console.error("Error recalculating scores: ", error);
+                alert("An error occurred while recalculating.");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        };
+
         const formatDate = (timestamp) => {
             if (!timestamp) return "N/A";
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -1203,6 +1369,10 @@
                             <input type="file" id="mobile-upload" accept=".xlsx, .xls" class="flex-1 w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 p-1.5 border border-slate-200 rounded cursor-pointer">
                             <button id="upload-mobiles-btn" onclick="uploadMobiles()" class="bg-emerald-600 text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm hover:bg-emerald-700 transition-colors whitespace-nowrap">UPLOAD</button>
                         </div>
+                        <div class="flex gap-2 flex-wrap mt-3 border-t border-slate-100 pt-3">
+                            <span class="text-[10px] font-bold text-slate-400 self-center">Manual Edit:</span>
+                            <button onclick="openMobileEditor()" class="bg-slate-100 text-emerald-600 px-3 py-1.5 rounded text-[10px] font-bold hover:bg-slate-200 transition-colors">Edit Authorized Numbers</button>
+                        </div>
                     </div>
 
                     <div class="flex justify-between items-center mt-2">
@@ -1213,7 +1383,8 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="approveAll()" class="flex-2 bg-blue-600 text-white py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-colors w-full">Approve All</button>
+                        <button onclick="approveAll()" class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-colors w-full">Approve All</button>
+                        <button id="recalculate-btn" onclick="recalculateAllScores()" class="flex-1 bg-amber-100 text-amber-700 py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-200 transition-colors whitespace-nowrap">Recalculate</button>
                         <button id="delete-all-btn" onclick="deleteAllResults()" class="flex-1 bg-red-100 text-red-600 py-3 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-200 transition-colors whitespace-nowrap">Delete All</button>
                     </div>
                 </div>
@@ -1244,6 +1415,24 @@
                 
                 <button id="save-editor-btn" onclick="saveAdminQuestions()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-100 mb-4 transition-all active:scale-95">Save Changes</button>
                 <button onclick="downloadFinalQuestions()" class="w-full bg-emerald-100 text-emerald-700 p-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-emerald-200 shadow-sm border border-emerald-200 transition-all active:scale-95">Download Questions to Excel</button>
+            </div>
+
+            <!-- MANUAL MOBILE ID EDITOR SCREEN -->
+            <div id="admin-mobile-editor-screen" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-black text-slate-800 italic uppercase flex items-center gap-2">
+                        <button onclick="closeMobileEditor()" class="text-slate-400 hover:text-slate-800 transition-colors mr-2">←</button>
+                        Edit <span class="text-emerald-600">NUMBERS</span>
+                        <span id="mobile-count-badge" class="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full ml-2">0</span>
+                    </h2>
+                    <button onclick="addAdminMobile()" class="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-sm border border-emerald-100 hover:bg-emerald-100 transition-colors">+ Add</button>
+                </div>
+                
+                <div id="admin-mobile-list" class="space-y-2 mb-6 max-h-[500px] overflow-y-auto pr-2 bg-slate-50/50 p-4 border rounded-2xl">
+                    <!-- Populated via JS -->
+                </div>
+                
+                <button id="save-mobiles-btn" onclick="saveAdminMobiles()" class="w-full bg-emerald-600 text-white p-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-emerald-700 shadow-xl shadow-emerald-100 mb-4 transition-all active:scale-95">Save Changes</button>
             </div>
 
         </div>
