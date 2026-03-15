@@ -272,7 +272,12 @@
             localStorage.setItem('tlj_place', place);
             localStorage.setItem('tlj_mobile', mobile);
             localStorage.setItem('tlj_dob', dob);
-            studentData = { name, place, mobile, dob, approved: false };
+            let startTime = localStorage.getItem(`tlj_startTime_${mobile}`);
+            if (!startTime) {
+                startTime = new Date().toISOString();
+                localStorage.setItem(`tlj_startTime_${mobile}`, startTime);
+            }
+            studentData = { name, place, mobile, dob, approved: false, startTime };
             studentSelections = Array(questions.length).fill().map(() => ([]));
             hasReachedReview = false;
             showScreen('quiz-screen');
@@ -338,6 +343,9 @@
 
         const showReview = () => {
             hasReachedReview = true;
+            if(!studentData.reviewTime) {
+                studentData.reviewTime = new Date().toISOString();
+            }
             showScreen('review-screen');
             const container = document.getElementById('review-list');
             container.innerHTML = '';
@@ -404,6 +412,7 @@
                 isSubmitted = true;
                 if(timerInterval) clearInterval(timerInterval);
                 localStorage.removeItem(`tlj_timer_${studentData.mobile}`); // Clear saved timer
+                localStorage.removeItem(`tlj_startTime_${studentData.mobile}`); // Clear start time
                 showScreen('finish-screen');
             } catch (e) {
                 console.error(e);
@@ -1015,7 +1024,17 @@
         window.downloadExcel = () => {
             if(allResultsData.length === 0) return alert("No results to download.");
             const sheetData = allResultsData.map(res => {
-                const row = { "Name": res.name, "Place": res.place, "Mobile": res.mobile, "Score": res.score, "Approved": res.approved ? "Yes" : "No", "Time": formatDate(res.at) };
+                const row = { 
+                    "Name": res.name, 
+                    "DOB": res.dob ? new Date(res.dob).toLocaleDateString() : 'N/A', 
+                    "Place": res.place, 
+                    "Mobile": res.mobile, 
+                    "Score": res.score, 
+                    "Approved": res.approved ? "Yes" : "No", 
+                    "First Enter Time": res.startTime ? new Date(res.startTime).toLocaleString('en-GB') : "N/A",
+                    "Review Submission": res.reviewTime ? new Date(res.reviewTime).toLocaleString('en-GB') : "N/A",
+                    "Final Submit Time": formatDate(res.at) 
+                };
                 const numQ = res.selections ? Math.max(res.selections.length, questions.length) : questions.length;
                 for(let i=0; i<numQ; i++) {
                     const sel = res.selections ? res.selections[i] : null;
